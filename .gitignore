@@ -1,0 +1,4 @@
+preseed.cfg
+*.auto.pkrvars.hcl
+*.pkrvars.hcl
+manifest.json

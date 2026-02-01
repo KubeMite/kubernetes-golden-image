@@ -1,0 +1,196 @@
+# Kernel parameters
+d-i debian-installer/add-kernel-opts string \
+## Enable auditd to track services that started before it is started
+audit=1 \
+audit_backlog_limit=8192 \
+
+# locales
+## Preseeding only locale sets language, country and locale.
+d-i debian-installer/locale string en_US.UTF-8
+d-i debian-installer/language string en
+d-i debian-installer/country string US
+d-i keyboard-configuration/xkb-keymap string us
+d-i keyboard-configuration/toggle select No toggling
+
+# Network
+## Disable DHCP
+d-i netcfg/disable_autoconfig boolean true
+## Pick interface automatically
+d-i netcfg/choose_interface select auto
+## Static config
+d-i netcfg/get_ipaddress string ${ip}
+d-i netcfg/get_netmask string ${netmask}
+d-i netcfg/get_gateway string ${gateway}
+d-i netcfg/get_nameservers string ${dns_server}
+d-i netcfg/confirm_static boolean true
+## Hostname / domain
+d-i netcfg/get_domain string ${domain}
+d-i netcfg/get_hostname string ${hostname}
+
+# mirror
+d-i mirror/protocol string http
+d-i mirror/http/hostname string deb.debian.org
+d-i mirror/http/directory string /debian
+d-i mirror/http/proxy string
+
+# accounts
+## Root
+d-i passwd/root-login boolean true
+d-i passwd/root-password password ${root_password}
+d-i passwd/root-password-again password ${root_password}
+## User
+d-i passwd/make-user boolean true
+d-i passwd/user-fullname string ${user_username}
+d-i passwd/username string ${user_username}
+d-i passwd/user-password password ${user_password}
+d-i passwd/user-password-again password ${user_password}
+
+# Clock and timezone
+## Controls whether or not the hardware clock is set to UTC.
+d-i clock-setup/utc boolean true
+## Chooses timezone
+d-i time/zone select ${timezone}
+## Controls whether to use NTP to set the clock during the install
+d-i clock-setup/ntp boolean true
+## NTP server to use for time synchronization.
+d-i clock-setup/ntp-server string ${ntp_servers}
+
+# Partitioning - LVM on entire disk with folder seperation and permission, no encryption
+d-i partman/debug boolean true
+d-i partman/choose_partition select finish
+d-i partman/confirm boolean true
+d-i partman/confirm_nooverwrite boolean true
+d-i partman/mount_style select uuid
+d-i partman/default_filesystem string ext4
+d-i partman-md/device_remove_md boolean true
+d-i partman-md/confirm boolean true
+d-i partman-partitioning/confirm_write_new_label boolean true
+d-i partman-partitioning/choose_label select gpt
+d-i partman-partitioning/default_label string gpt
+d-i partman-lvm/device_remove_lvm boolean true
+d-i partman-lvm/device_remove_lvm_span boolean true
+d-i partman-lvm/confirm boolean true
+d-i partman-lvm/confirm_nooverwrite boolean true
+d-i partman-efi/non_efi_system boolean true
+d-i partman-auto/method string lvm
+d-i partman/early_command string \
+    BIGGEST_DISK=$(cat /proc/partitions | sort -nk3 | tail -n1 | awk '{print $4}'); \
+    debconf-set partman-auto/disk "/dev/$BIGGEST_DISK"
+d-i partman-auto/erase_disks boolean true
+d-i partman-auto-lvm/guided_size string max
+d-i partman-auto/choose_recipe select hardened-fs
+d-i partman-auto/expert_recipe string                                                                                          \
+    hardened-fs ::                                                                                                             \
+        512 512 512 free                                                                                                       \
+            $primary{ }                                                                                                        \
+            $iflabel{ gpt }                                                                                                    \
+            method{ efi } format{ }                                                                                            \
+            .                                                                                                                  \
+        512 512 512 $default_filesystem                                                                                        \
+            mountpoint{ /boot }                                                                                                \
+            $primary{ } $bootable{ }                                                                                           \
+            method{ format } format{ }                                                                                         \
+            use_filesystem{ } $default_filesystem{ }                                                                           \
+            options/ro{ ro }                                                                                                   \
+            options/defaults{ defaults }                                                                                       \
+            options/nodev{ nodev }                                                                                             \
+            options/nosuid{ nosuid }                                                                                           \
+            options/noexec{ noexec }                                                                                           \
+            .                                                                                                                  \
+        1 1 -1 $default_filesystem                                                                                             \
+            $primary{ }                                                                                                        \
+            method{ lvm }                                                                                                      \
+            vg_name{ vgroot }                                                                                                  \
+            .                                                                                                                  \
+        ${storage_swap_size_mb} ${storage_swap_size_mb} ${storage_swap_size_mb} linux-swap                                     \
+            method{ swap } format{ }                                                                                           \
+            $lvmok{ } in_vg{ vgroot } lv_name{ SwapVol }                                                                       \
+            options/defaults{ defaults }                                                                                       \
+            .                                                                                                                  \
+        ${storage_var_tmp_size_mb} ${storage_var_tmp_size_mb} ${storage_var_tmp_size_mb} $default_filesystem                   \
+            mountpoint{ /var/tmp }                                                                                             \
+            $lvmok{ } in_vg{ vgroot } lv_name{ VarTmpVol }                                                                     \
+            method{ format } format{ }                                                                                         \
+            use_filesystem{ } $default_filesystem{ }                                                                           \
+            options/defaults{ defaults }                                                                                       \
+            options/nodev{ nodev }                                                                                             \
+            options/nosuid{ nosuid }                                                                                           \
+            options/noexec{ noexec }                                                                                           \
+            .                                                                                                                  \
+        ${storage_home_size_mb} ${storage_home_size_mb} ${storage_home_size_mb} $default_filesystem                            \
+            mountpoint{ /home }                                                                                                \
+            $lvmok{ } in_vg{ vgroot } lv_name{ HomeVol }                                                                       \
+            method{ format } format{ }                                                                                         \
+            use_filesystem{ } $default_filesystem{ }                                                                           \
+            options/defaults{ defaults }                                                                                       \
+            options/nodev{ nodev }                                                                                             \
+            options/nosuid{ nosuid }                                                                                           \
+            .                                                                                                                  \
+        ${storage_var_log_audit_size_mb} ${storage_var_log_audit_size_mb} ${storage_var_log_audit_size_mb} $default_filesystem \
+            mountpoint{ /var/log/audit }                                                                                       \
+            $lvmok{ } in_vg{ vgroot } lv_name{ VarLogAuditVol }                                                                \
+            method{ format } format{ }                                                                                         \
+            use_filesystem{ } $default_filesystem{ }                                                                           \
+            options/nodev{ nodev }                                                                                             \
+            options/nosuid{ nosuid }                                                                                           \
+            options/noexec{ noexec }                                                                                           \
+            .                                                                                                                  \
+        ${storage_var_log_size_mb} ${storage_var_log_size_mb} ${storage_var_log_size_mb} $default_filesystem                   \
+            mountpoint{ /var/log }                                                                                             \
+            $lvmok{ } in_vg{ vgroot } lv_name{ VarLogVol }                                                                     \
+            method{ format } format{ }                                                                                         \
+            use_filesystem{ } $default_filesystem{ }                                                                           \
+            options/defaults{ defaults }                                                                                       \
+            options/nodev{ nodev }                                                                                             \
+            options/nosuid{ nosuid }                                                                                           \
+            options/noexec{ noexec }                                                                                           \
+            .                                                                                                                  \
+        ${storage_var_size_mb} ${storage_var_size_mb} ${storage_var_size_mb} $default_filesystem                               \
+            mountpoint{ /var }                                                                                                 \
+            $lvmok{ } in_vg{ vgroot } lv_name{ VarVol }                                                                        \
+            method{ format } format{ }                                                                                         \
+            use_filesystem{ } $default_filesystem{ }                                                                           \
+            options/defaults{ defaults }                                                                                       \
+            options/nodev{ nodev }                                                                                             \
+            options/nosuid{ nosuid }                                                                                           \
+            .                                                                                                                  \
+        1 1 -1 $default_filesystem                                                                                             \
+            mountpoint{ / }                                                                                                    \
+            $lvmok{ } in_vg{ vgroot } lv_name{ RootVol }                                                                       \
+            method{ format } format{ }                                                                                         \
+            use_filesystem{ } $default_filesystem{ }                                                                           \
+            options/relatime{ relatime }                                                                                       \
+            .
+
+# Apt setup
+d-i apt-setup/non-free-firmware boolean true
+d-i apt-setup/non-free boolean true
+d-i apt-setup/contrib boolean true
+d-i apt-setup/disable-cdrom-entries boolean true
+d-i apt-setup/use_mirror boolean true
+d-i apt-setup/services-select string multiselect security, updates
+d-i apt-setup/security_host string security.debian.org
+d-i debian-installer/allow_unauthenticated boolean false
+
+# Package selection
+tasksel tasksel/first multiselect standard system utilities
+d-i pkgsel/run_tasksel string
+d-i pkgsel/upgrade select safe-upgrade
+popularity-contest popularity-contest/participate boolean false
+d-i pkgsel/include string ${packages_to_install}
+
+# Boot loader
+d-i grub-installer/only_debian boolean true
+d-i grub-installer/with_other_os boolean true
+d-i grub-installer/bootloader-id string Debian
+d-i grub-installer/target string efi
+d-i grub-installer/bootdev string default
+
+# Allow user to run sudo (We disable it later in the provision script)
+d-i preseed/late_command string in-target usermod -aG sudo user
+
+# Finishing
+#d-i finish-install/keep-consoles boolean false
+#d-i debian-installer/exit/halt boolean true
+## Comment the next line to disable automatic reboot for debugging purposes
+d-i finish-install/reboot_in_progress note

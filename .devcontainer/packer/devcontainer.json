@@ -1,0 +1,25 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/go
+{
+	"name": "Packer",
+	"image": "hashicorp/packer:full-1.14.3",
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {}
+	},
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"hashicorp.hcl",
+				"nhoizey.gremlins",
+				"christian-kohler.path-intellisense",
+				"Gruntfuggly.todo-tree",
+				"shardulm94.trailing-spaces"
+			]
+		}
+	},
+
+	"postCreateCommand": "apk add jq curl"
+}
