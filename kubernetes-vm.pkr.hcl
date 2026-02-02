@@ -125,10 +125,7 @@ build {
   provisioner "shell" {
     # Run script as root
     execute_command = "echo ${var.user_password} | sudo -S {{.Vars}} bash {{.Path}}"
-    environment_vars = [
-      "SSH_PUBKEY=${var.ssh_pub_key}"
-    ]
-    script = "scripts/provision.sh"
+    script          = "scripts/provision.sh"
   }
 
   post-processor "manifest" {
