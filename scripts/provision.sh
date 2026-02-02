@@ -131,6 +131,7 @@ groupadd sugroup
 echo "auth required pam_wheel.so use_uid group=sugroup" > /etc/pam.d/su
 ### Log sudo command access
 echo 'Defaults	logfile="/var/log/sudo.log"' > /etc/sudoers.d/01_sudo_hardening
+chmod o-r,g-r /etc/sudoers.d/01_sudo_hardening
 ## Harden login options
 printf 'session optional pam_umask.so\n' >> /etc/pam.d/common-session
 echo "UMASK 027" >> /etc/login.defs
@@ -217,7 +218,7 @@ chown root:root /etc/cron.monthly
 chmod 700 /etc/cron.yearly
 chown root:root /etc/cron.yearly
 echo root > /etc/cron.allow
-chmod 640 /etc/cron.allow
+chmod 600 /etc/cron.allow
 chown root:root /etc/cron.allow
 ## Journald log rotation
 sed -i 's/#Compress=yes/Compress=yes/g' /etc/systemd/journald.conf
@@ -402,3 +403,6 @@ EOF
 
 # Apply sysctl configuration
 sysctl --system
+
+# Cleanup
+apt clean
