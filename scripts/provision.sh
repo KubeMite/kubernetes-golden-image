@@ -179,7 +179,8 @@ sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd
 sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/g' /etc/ssh/sshd_config
 sed -i 's/X11Forwarding yes/X11Forwarding no/g' /etc/ssh/sshd_config
 # Setup SSH key authentication
-mkdir -p /home/user/.ssh/authorized_keys
+mkdir -p /home/user/.ssh
+touch /home/user/.ssh/authorized_keys
 ## SSH folder permissions
 chmod 600 /etc/ssh/sshd_config
 chown -R user:user /home/user/.ssh
