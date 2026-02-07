@@ -153,36 +153,48 @@ echo "export PATH=$PATH:/sbin:/usr/sbin" >> /root/.bashrc
 
 # SSH
 ## SSHD hardening options
-echo 'AllowUsers user' >> /etc/ssh/sshd_config
-echo 'Ciphers aes128-ctr,aes192-ctr,aes256-ctr,aes128-cbc,3des-cbc,aes192-cbc,aes256-cbc' >> /etc/ssh/sshd_config
-echo 'DisableForwarding yes' >> /etc/ssh/sshd_config
-echo 'LoginGraceTime 60' >> /etc/ssh/sshd_config
-echo 'MACs hmac-sha2-512,hmac-sha2-256,hmac-sha1' >> /etc/ssh/sshd_config
-sed -i '/^#\?AllowUsers/d' /etc/ssh/sshd_config
-sed -i 's/#AllowAgentForwarding yes/AllowAgentForwarding no/g' /etc/ssh/sshd_config
-sed -i 's/#AllowTcpForwarding yes/AllowTcpForwarding no/g' /etc/ssh/sshd_config
-sed -i 's/#Banner none/Banner \/etc\/issue/g' /etc/ssh/sshd_config
-sed -i 's/#ClientAliveCountMax 3/ClientAliveCountMax 2/g' /etc/ssh/sshd_config
-sed -i 's/#ClientAliveInterval 0/ClientAliveInterval 150/g' /etc/ssh/sshd_config
-sed -i 's/#Compression delayed/Compression no/g' /etc/ssh/sshd_config
-sed -i 's/#HostbasedAuthentication no/HostbasedAuthentication no/g' /etc/ssh/sshd_config
-sed -i 's/#IgnoreRhosts yes/IgnoreRhosts yes/g' /etc/ssh/sshd_config
-sed -i 's/#LogLevel INFO/LogLevel VERBOSE/g' /etc/ssh/sshd_config
-sed -i 's/#MaxAuthTries 6/MaxAuthTries 3/g' /etc/ssh/sshd_config
-sed -i 's/#MaxSessions 10/MaxSessions 2/g' /etc/ssh/sshd_config
-sed -i 's/#MaxStartups 10:30:100/MaxStartups 10:30:60/g' /etc/ssh/sshd_config
-sed -i 's/#PermitEmptyPasswords no/PermitEmptyPasswords no/g' /etc/ssh/sshd_config
-sed -i 's/#PermitUserEnvironment no/PermitUserEnvironment no/g' /etc/ssh/sshd_config
-sed -i 's/#PubkeyAuthentication yes/PubkeyAuthentication yes/g' /etc/ssh/sshd_config
-sed -i 's/#TCPKeepAlive yes/TCPKeepAlive no/g' /etc/ssh/sshd_config
-sed -i 's/^#*PasswordAuthentication.*/PasswordAuthentication no/g' /etc/ssh/sshd_config
-sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/g' /etc/ssh/sshd_config
-sed -i 's/X11Forwarding yes/X11Forwarding no/g' /etc/ssh/sshd_config
+cat <<EOF > /etc/ssh/sshd_config.d/hardening.conf
+# Cryptography
+Ciphers aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+KexAlgorithms sntrup761x25519-sha512@openssh.com,mlkem768x25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com
+
+# Authentication & Access Control
+AllowUsers user
+PermitRootLogin no
+PasswordAuthentication no
+PubkeyAuthentication yes
+PermitEmptyPasswords no
+MaxAuthTries 3
+LoginGraceTime 60
+HostbasedAuthentication no
+IgnoreRhosts yes
+
+# Session & Connection Management
+MaxSessions 2
+MaxStartups 10:30:60
+TCPKeepAlive no
+ClientAliveInterval 150
+ClientAliveCountMax 2
+Compression no
+
+# Restriction & Forwarding
+DisableForwarding yes
+AllowAgentForwarding no
+AllowTcpForwarding no
+X11Forwarding no
+PermitUserEnvironment no
+
+# Logging & UI
+Banner /etc/issue
+LogLevel VERBOSE
+EOF
 # Setup SSH key authentication
 mkdir -p /home/user/.ssh
 touch /home/user/.ssh/authorized_keys
 ## SSH folder permissions
 chmod 600 /etc/ssh/sshd_config
+chmod -R 600 /etc/ssh/sshd_config.d
 chown -R user:user /home/user/.ssh
 chmod 700 /home/user/.ssh
 chmod 600 /home/user/.ssh/authorized_keys
