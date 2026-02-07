@@ -95,7 +95,7 @@ source "proxmox-iso" "vm" {
 
   # Boot configuration
   boot      = "order=scsi2;scsi0;net0"
-  boot_wait = "5s"
+  boot_wait = "10s"
   boot_command = [
     # Go to boot menu
     "<esc><wait>",
@@ -121,9 +121,9 @@ source "proxmox-iso" "vm" {
   ssh_username           = "${var.user_username}"
   ssh_password           = "${var.user_password}"
   ssh_port               = "${var.ssh_port}"
-  ssh_timeout            = "24h"
+  ssh_timeout            = "10m"
   ssh_pty                = true
-  ssh_handshake_attempts = 20
+  ssh_handshake_attempts = 3
 }
 
 build {
@@ -150,7 +150,7 @@ build {
     ]
     inline = [
       "VM_ID=$(jq -r '.builds[-1].artifact_id' output/manifest.json)",
-      "curl -k -X POST \"$PVE_URL/nodes/$NODE/qemu/$VM_ID/config\" \\",
+      "curl -sS -k -X POST \"$PVE_URL/nodes/$NODE/qemu/$VM_ID/config\" \\",
       "     -H \"Authorization: PVEAPIToken=$PVE_TOKEN\" \\",
       "     --data \"memory=$MEMORY_MAXIMUM&balloon=$MEMORY_MINIMUM\""
     ]
