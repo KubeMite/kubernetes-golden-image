@@ -234,14 +234,17 @@ echo root > /etc/cron.allow
 chmod 600 /etc/cron.allow
 chown root:root /etc/cron.allow
 ## Journald log rotation
-sed -i 's/#Compress=yes/Compress=yes/g' /etc/systemd/journald.conf
-sed -i 's/#ForwardToSyslog=no/ForwardToSyslog=no/g' /etc/systemd/journald.conf
-sed -i 's/#MaxFileSec=1month/MaxFileSec=1month/g' /etc/systemd/journald.conf
-sed -i 's/#RuntimeKeepFree=/RuntimeKeepFree=50M/g' /etc/systemd/journald.conf
-sed -i 's/#RuntimeMaxUse=/RuntimeMaxUse=200M/g' /etc/systemd/journald.conf
-sed -i 's/#Storage=auto/Storage=persistent/g' /etc/systemd/journald.conf
-sed -i 's/#SystemKeepFree=/SystemKeepFree=500M/g' /etc/systemd/journald.conf
-sed -i 's/#SystemMaxUse=/SystemMaxUse=1G/g' /etc/systemd/journald.conf
+mkdir -p /etc/systemd/journald.conf.d
+cat <<EOF > /etc/systemd/journald.conf.d/log-rotation.conf
+Compress=yes
+ForwardToSyslog=no
+MaxFileSec=1month
+RuntimeKeepFree=50M
+RuntimeMaxUse=200M
+Storage=persistent
+SystemKeepFree=500M
+SystemMaxUse=1G
+EOF
 sed -i 's/ForwardToSyslog=yes/ForwardToSyslog=no/g' /usr/lib/systemd/journald.conf.d/syslog.conf
 systemctl reload-or-restart systemd-journald
 ## Haveged to improve entropy
@@ -249,11 +252,48 @@ systemctl enable --now haveged
 printf '/usr/local/sbin/haveged -w 1024' > /etc/rc.local
 ## AuditD
 ### Configuration
-sed -i 's/^admin_space_left_action.*/admin_space_left_action = rotate/' /etc/audit/auditd.conf
-sed -i 's/^disk_error_action.*/disk_error_action = syslog/' /etc/audit/auditd.conf
-sed -i 's/^disk_full_action.*/disk_full_action = rotate/' /etc/audit/auditd.conf
-sed -i 's/^max_log_file.*/max_log_file = 5/' /etc/audit/auditd.conf
-sed -i 's/^space_left_action.*/space_left_action = rotate/' /etc/audit/auditd.conf
+cat <<EOF > /etc/audit/auditd.conf
+#
+# This file controls the configuration of the audit daemon
+#
+
+local_events = yes
+write_logs = yes
+log_file = /var/log/audit/audit.log
+log_group = adm
+log_format = ENRICHED
+flush = INCREMENTAL_ASYNC
+freq = 50
+max_log_file = 5
+num_logs = 5
+priority_boost = 4
+name_format = NONE
+##name = mydomain
+max_log_file = 5
+space_left = 75
+space_left_action = rotate
+verify_email = yes
+action_mail_acct = root
+admin_space_left = 50
+admin_space_left_action = rotate
+disk_full_action = rotate
+disk_error_action = syslog
+use_libwrap = yes
+##tcp_listen_port = 60
+tcp_listen_queue = 5
+tcp_max_per_addr = 1
+##tcp_client_ports = 1024-65535
+tcp_client_max_idle = 0
+transport = TCP
+krb5_principal = auditd
+##krb5_key_file = /etc/audit/audit.key
+distribute_network = no
+q_depth = 2000
+overflow_action = SYSLOG
+max_restarts = 10
+plugin_dir = /etc/audit/plugins.d
+end_of_event_timeout = 2
+EOF
 ### Rules
 echo "-c" >> /etc/audit/rules.d/01-initialize.rules
 cat <<EOF > /etc/audit/rules.d/50-scope.rules
