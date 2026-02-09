@@ -19,72 +19,84 @@ variable "proxmox_node" {
   type        = string
   sensitive   = true
   description = "Proxmox node the vm will be created in"
+  default     = "pve"
 }
 
 variable "template_name" {
   type        = string
   sensitive   = false
   description = "The name of the vm template after the vm is configured"
+  default     = "template"
 }
 
 variable "template_description" {
   type        = string
   sensitive   = false
   description = "The description of the vm template after the vm is configured"
+  default     = "Packer generated debian-13.3.0-amd64 configured for Kubernetes"
 }
 
 variable "boot_iso" {
   type        = string
-  sensitive   = true
+  sensitive   = false
   description = "The name of the local ISO the vm will boot from. e.g. debian-12.11.5-amd64-DVD-1.iso"
+  default     = "debian-13.3.0-amd64-DVD-1.iso"
 }
 
 variable "boot_iso_checksum_path" {
   type        = string
-  sensitive   = true
+  sensitive   = false
   description = "https://<iso checksum file URL>"
+  default     = "https://cdimage.debian.org/debian-cd/13.3.0/amd64/iso-dvd/SHA512SUMS"
 }
 
 variable "vlan_tag" {
   type        = number
-  sensitive   = true
+  sensitive   = false
   description = "VLAN tag of the VM network interface"
+  default     = 3
 }
 
 variable "ip" {
   type        = string
-  sensitive   = true
+  sensitive   = false
   description = "The initial IP that will be set in the VM"
+  default     = "172.16.3.200"
 }
 
 variable "netmask" {
   type        = string
-  sensitive   = true
+  sensitive   = false
   description = "The initial netmask that will be set in the VM"
+  default     = "255.255.255.0"
 }
 
 variable "gateway" {
   type        = string
-  sensitive   = true
+  sensitive   = false
   description = "The initial gateway that will be set in the VM"
+  default     = "172.16.3.1"
 }
 
 variable "dns_server" {
   type        = string
-  sensitive   = true
+  sensitive   = false
   description = "The initial dns server that will be set in the VM"
+  default     = "172.16.3.1"
 }
 
 variable "domain" {
   type        = string
-  sensitive   = true
+  sensitive   = false
   description = "The initial domain that will be set in the VM"
+  default     = "network.internal"
 }
 
 variable "hostname" {
   type        = string
-  sensitive   = true
+  sensitive   = false
   description = "The initial hostname that will be set in the VM"
+  default     = "hostTemplate"
 }
 
 variable "root_password" {
@@ -97,6 +109,7 @@ variable "user_username" {
   type        = string
   sensitive   = false
   description = "Username of vm default user"
+  default     = "user"
 }
 
 variable "user_password" {
