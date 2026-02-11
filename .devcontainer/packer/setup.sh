@@ -9,8 +9,7 @@ apk add curl jq unzip
 ZIP_FILE_NAME="bws.zip"
 HASH_FILE_NAME="bws-sha256-checksums.txt"
 
-# Put requested version here if a specific version is required (without the v in the tag name)
-REQUESTED_VERSION=""
+# Put requested version in REQUESTED_VERSION env var if a specific version is required (without the v in the tag name)
 CURRENT_TAG="$(curl -Ss --request GET https://api.github.com/repos/bitwarden/sdk-sm/releases?per_page=100 | jq --raw-output '[.[] | select(.draft == false) | select(.prerelease == false) | select(.tag_name | startswith("bws-")) | .tag_name][0]')"
 CURRENT_VERSION="${CURRENT_TAG#bws-v}"
 VERSION="${REQUESTED_VERSION:-$CURRENT_VERSION}"

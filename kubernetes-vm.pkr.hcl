@@ -4,15 +4,31 @@ packer {
       version = "~> 1"
       source  = "github.com/hashicorp/proxmox"
     }
+    external = {
+      version = "> 0.0.2"
+      source  = "github.com/joomcode/external"
+    }
   }
+}
+
+data "external" "bws_secrets" {
+  program = ["bash", "./scripts/get_bws_secrets.sh"]
+  query = {
+    access_token = "${var.bws_token}"
+    project_id   = "${var.bws_project_id}"
+  }
+}
+
+locals {
+  bws_secrets = data.external.bws_secrets.result
 }
 
 source "proxmox-iso" "vm" {
 
   # Proxmox Connection Settings
-  proxmox_url = "${var.proxmox_api_url}"
-  username    = "${var.proxmox_api_token_id}"
-  token       = "${var.proxmox_api_token_secret}"
+  proxmox_url = "${local.bws_secrets["proxmox-api-endpoint"]}/api2/json"
+  username    = "${local.bws_secrets["proxmox-root-api-token-id"]}"
+  token       = "${local.bws_secrets["proxmox-root-api-token-secret"]}"
   # Skip TLS Verification
   insecure_skip_tls_verify = true
 
@@ -40,9 +56,9 @@ source "proxmox-iso" "vm" {
         dns_server                    = "${var.dns_server}"
         domain                        = "${var.domain}"
         hostname                      = "${var.hostname}"
-        root_password                 = "${var.root_password}"
+        root_password                 = "${local.bws_secrets["vm-template-root-password"]}"
         user_username                 = "${var.user_username}"
-        user_password                 = "${var.user_password}"
+        user_password                 = "${local.bws_secrets["vm-template-user-password"]}"
         timezone                      = "${var.timezone}"
         ntp_servers                   = "${var.ntp_servers}"
         storage_swap_size_mb          = "${var.storage_swap_size_mb}"
@@ -119,7 +135,7 @@ source "proxmox-iso" "vm" {
   ]
 
   ssh_username           = "${var.user_username}"
-  ssh_password           = "${var.user_password}"
+  ssh_password           = "${local.bws_secrets["vm-template-user-password"]}"
   ssh_port               = "${var.ssh_port}"
   ssh_timeout            = "10m"
   ssh_pty                = true
@@ -131,7 +147,7 @@ build {
 
   provisioner "shell" {
     # Run script as root
-    execute_command = "echo ${var.user_password} | sudo -S {{.Vars}} bash {{.Path}}"
+    execute_command = "echo ${local.bws_secrets["vm-template-user-password"]} | sudo -S {{.Vars}} bash {{.Path}}"
     script          = "scripts/provision.sh"
   }
 
@@ -141,14 +157,12 @@ build {
 
   # Setting template with balooning device post-setup (debian install is unstable on ballooning device)
   post-processor "shell-local" {
-    environment_vars = [
-      "PVE_URL=${var.proxmox_api_url}",
-      "PVE_TOKEN=${var.proxmox_api_token_id}=${var.proxmox_api_token_secret}",
-      "NODE=${var.proxmox_node}",
-      "MEMORY_MAXIMUM=${var.memory_maximum}",
-      "MEMORY_MINIMUM=${var.memory_minimum}"
-    ]
     inline = [
+      "PVE_URL='${local.bws_secrets["proxmox-api-endpoint"]}/api2/json'",
+      "PVE_TOKEN='${local.bws_secrets["proxmox-root-api-token-id"]}=${local.bws_secrets["proxmox-root-api-token-secret"]}'",
+      "NODE='${var.proxmox_node}'",
+      "MEMORY_MAXIMUM='${var.memory_maximum}'",
+      "MEMORY_MINIMUM='${var.memory_minimum}'",
       "VM_ID=$(jq -r '.builds[-1].artifact_id' output/manifest.json)",
       "curl -sS -k -X POST \"$PVE_URL/nodes/$NODE/qemu/$VM_ID/config\" \\",
       "     -H \"Authorization: PVEAPIToken=$PVE_TOKEN\" \\",

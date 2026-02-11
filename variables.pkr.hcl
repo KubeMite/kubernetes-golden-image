@@ -1,18 +1,15 @@
-variable "proxmox_api_url" {
-  type        = string
-  description = "https://<proxmox-ip>:8006/api2/json"
-}
-
-variable "proxmox_api_token_id" {
+variable "bws_token" {
   type        = string
   sensitive   = true
-  description = "Token ID of API token for Proxmox authentication, e.g. <username>@pam!<token-name>"
+  description = "API token for bitwarden secret manager authentication"
+  default     = env("BWS_ACCESS_TOKEN")
 }
 
-variable "proxmox_api_token_secret" {
+variable "bws_project_id" {
   type        = string
   sensitive   = true
-  description = "Token secret of API token for Proxmox authentication"
+  description = "UUID of the bitwarden secret manager project to list secrets from"
+  default     = env("BWS_PROJECT_ID")
 }
 
 variable "proxmox_node" {
@@ -99,24 +96,11 @@ variable "hostname" {
   default     = "hostTemplate"
 }
 
-variable "root_password" {
-  type        = string
-  sensitive   = true
-  description = "Root user password"
-}
-
 variable "user_username" {
   type        = string
   sensitive   = false
   description = "Username of vm default user"
   default     = "user"
-}
-
-variable "user_password" {
-  type        = string
-  default     = env("USER_PASSWORD")
-  sensitive   = true
-  description = "Password of vm default user"
 }
 
 variable "timezone" {
