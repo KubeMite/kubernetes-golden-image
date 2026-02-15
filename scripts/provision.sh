@@ -446,6 +446,57 @@ EOF
 systemctl enable --now unattended-upgrades
 systemctl restart unattended-upgrades
 
+# Cloud-init configuration
+cat <<EOF > /etc/cloud/cloud.cfg
+users:
+   - default
+
+# We already do it in the ssh config
+disable_root: false
+# Disable key generation
+ssh_genkeytypes: []
+ssh_quiet_keygen: true
+
+# This will cause the set+update hostname module to not operate (if true)
+preserve_hostname: false
+
+apt:
+   # We already set the apt configuration
+   preserve_sources_list: true
+
+# The modules that run in the 'init' stage
+cloud_init_modules:
+ - set_hostname
+ - update_hostname
+ - update_etc_hosts
+ - ca-certs
+ - users-groups
+ - ssh
+
+# The modules that run in the 'config' stage
+cloud_config_modules:
+ - set-passwords
+
+# The modules that run in the 'final' stage
+cloud_final_modules:
+ - ssh
+ - final_message
+
+# System and/or distro specific settings
+# (not accessible to handlers/transforms)
+system_info:
+   # This will affect which distro class gets used
+   distro: debian
+   # Other config here will be given to the distro class and/or path classes
+   paths:
+      cloud_dir: /var/lib/cloud/
+      templates_dir: /etc/cloud/templates/
+   ssh_svcname: ssh
+EOF
+cat <<EOF > /etc/cloud/cloud.cfg.d/99_proxmox.cfg
+datasource_list: [ NoCloud, ConfigDrive ]
+EOF
+
 # Set sysctl networking for kubernetes
 cat <<EOF > /etc/sysctl.d/k8s.conf
 net.ipv4.ip_forward = 1
@@ -456,6 +507,20 @@ EOF
 
 # Apply sysctl configuration
 sysctl --system
+
+# Wipe interface ip assignment for cloud-init to assign later
+cat <<EOF > /etc/network/interfaces
+
+source /etc/network/interfaces.d/*
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+EOF
+
+# Wipe the machine's "identity" so it regenerates on clone
+cloud-init clean --logs --seed --machine-id
 
 # Cleanup
 apt clean
