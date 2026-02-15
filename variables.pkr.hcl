@@ -14,7 +14,7 @@ variable "bws_project_id" {
 
 variable "proxmox_node" {
   type        = string
-  sensitive   = true
+  sensitive   = false
   description = "Proxmox node the vm will be created in"
   default     = "pve"
 }

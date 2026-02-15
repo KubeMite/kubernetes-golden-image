@@ -14,8 +14,8 @@ packer {
 data "external" "bws_secrets" {
   program = ["bash", "./scripts/get_bws_secrets.sh"]
   query = {
-    access_token = "${var.bws_token}"
-    project_id   = "${var.bws_project_id}"
+    access_token = var.bws_token
+    project_id   = var.bws_project_id
   }
 }
 
@@ -27,8 +27,8 @@ source "proxmox-iso" "vm" {
 
   # Proxmox Connection Settings
   proxmox_url = "${local.bws_secrets["proxmox-api-endpoint"]}/api2/json"
-  username    = "${local.bws_secrets["proxmox-root-api-token-id"]}"
-  token       = "${local.bws_secrets["proxmox-root-api-token-secret"]}"
+  username    = local.bws_secrets["proxmox-root-api-token-id"]
+  token       = local.bws_secrets["proxmox-root-api-token-secret"]
   # Skip TLS Verification
   insecure_skip_tls_verify = true
 
@@ -50,24 +50,24 @@ source "proxmox-iso" "vm" {
 
     cd_content = {
       "preseed.cfg" = templatefile("${path.root}/http/preseed.cfg.pkrtpl", {
-        ip                            = "${var.ip}"
-        netmask                       = "${var.netmask}"
-        gateway                       = "${var.gateway}"
-        dns_server                    = "${var.dns_server}"
-        domain                        = "${var.domain}"
-        hostname                      = "${var.hostname}"
+        ip                            = var.ip
+        netmask                       = var.netmask
+        gateway                       = var.gateway
+        dns_server                    = var.dns_server
+        domain                        = var.domain
+        hostname                      = var.hostname
         root_password                 = "${local.bws_secrets["vm-template-root-password"]}"
-        user_username                 = "${var.user_username}"
+        user_username                 = var.user_username
         user_password                 = "${local.bws_secrets["vm-template-user-password"]}"
-        timezone                      = "${var.timezone}"
-        ntp_servers                   = "${var.ntp_servers}"
-        storage_swap_size_mb          = "${var.storage_swap_size_mb}"
-        storage_var_tmp_size_mb       = "${var.storage_var_tmp_size_mb}"
-        storage_home_size_mb          = "${var.storage_home_size_mb}"
-        storage_var_log_audit_size_mb = "${var.storage_var_log_audit_size_mb}"
-        storage_var_log_size_mb       = "${var.storage_var_log_size_mb}"
-        storage_var_size_mb           = "${var.storage_var_size_mb}"
-        packages_to_install           = "${var.packages_to_install}"
+        timezone                      = var.timezone
+        ntp_servers                   = var.ntp_servers
+        storage_swap_size_mb          = var.storage_swap_size_mb
+        storage_var_tmp_size_mb       = var.storage_var_tmp_size_mb
+        storage_home_size_mb          = var.storage_home_size_mb
+        storage_var_log_audit_size_mb = var.storage_var_log_audit_size_mb
+        storage_var_log_size_mb       = var.storage_var_log_size_mb
+        storage_var_size_mb           = var.storage_var_size_mb
+        packages_to_install           = var.packages_to_install
       })
     }
   }
@@ -76,21 +76,21 @@ source "proxmox-iso" "vm" {
   network_adapters {
     bridge   = "vmbr0"
     model    = "virtio"
-    vlan_tag = "${var.vlan_tag}"
+    vlan_tag = var.vlan_tag
     firewall = true
   }
   disks {
     type         = "scsi"
-    disk_size    = "${var.disk_size}"
+    disk_size    = var.disk_size
     storage_pool = "local-lvm"
     cache_mode   = "none"
     format       = "raw"
   }
-  memory             = "${var.memory_maximum}"
+  memory             = var.memory_maximum
   ballooning_minimum = 0
-  cores              = "${var.cpu_cores}"
+  cores              = var.cpu_cores
   cpu_type           = "host"
-  sockets            = "${var.cpu_sockets}"
+  sockets            = var.cpu_sockets
   os                 = "l26"
   bios               = "seabios"
   qemu_agent         = true
@@ -105,9 +105,9 @@ source "proxmox-iso" "vm" {
   }
 
   # VM location & name
-  node                 = "${var.proxmox_node}"
-  template_name        = "${var.template_name}"
-  template_description = "${var.template_description}"
+  node                 = var.proxmox_node
+  template_name        = var.template_name
+  template_description = var.template_description
 
   # Boot configuration
   boot      = "order=scsi2;scsi0;net0"
@@ -134,9 +134,9 @@ source "proxmox-iso" "vm" {
     "<down><down><down><down><enter>"
   ]
 
-  ssh_username           = "${var.user_username}"
+  ssh_username           = var.user_username
   ssh_password           = "${local.bws_secrets["vm-template-user-password"]}"
-  ssh_port               = "${var.ssh_port}"
+  ssh_port               = var.ssh_port
   ssh_timeout            = "10m"
   ssh_pty                = true
   ssh_handshake_attempts = 3

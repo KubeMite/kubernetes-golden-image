@@ -1,9 +1,8 @@
 #!/bin/bash
 
 # This script is intended to be used as a Packer external data source.
-# It reads a JSON object from stdin, which must contain a Bitwarden access_token.
-# It requires the PROJECT_ID environment variable to be set to the Bitwarden project ID.
-# It fetches secrets from the specified project and outputs them as a single JSON object.
+# It reads a JSON object from stdin, which must contain the Bitwarden access_token and project_id.
+# It fetches all secrets from the specified project and outputs them as a single JSON object.
 
 INPUT=$(cat)
 
