@@ -6,8 +6,11 @@
 
 INPUT=$(cat)
 
-export BWS_ACCESS_TOKEN=$(echo "$INPUT" | jq -r '.access_token')
-export BWS_PROJECT_ID=$(echo "$INPUT" | jq -r '.project_id')
+BWS_ACCESS_TOKEN=$(echo "$INPUT" | jq -r '.access_token')
+BWS_PROJECT_ID=$(echo "$INPUT" | jq -r '.project_id')
+export BWS_ACCESS_TOKEN
+export BWS_PROJECT_ID
+
 if [ -z "$BWS_ACCESS_TOKEN" ]; then
     echo "Error: Failed to parse access_token" >&2
     exit 1
