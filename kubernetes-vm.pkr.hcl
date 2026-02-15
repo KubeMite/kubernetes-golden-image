@@ -72,6 +72,11 @@ source "proxmox-iso" "vm" {
     }
   }
 
+  # Cloud-init
+  cloud_init              = true
+  cloud_init_storage_pool = "local-lvm"
+  cloud_init_disk_type    = "ide"
+
   # VM hardware
   network_adapters {
     bridge   = "vmbr0"
