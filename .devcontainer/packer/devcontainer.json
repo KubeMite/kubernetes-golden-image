@@ -2,7 +2,7 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/go
 {
 	"name": "Packer",
-	"image": "hashicorp/packer:full-1.14.3",
+	"image": "hashicorp/packer:full-1.15.0",
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
