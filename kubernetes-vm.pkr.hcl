@@ -152,7 +152,7 @@ build {
 
   provisioner "shell" {
     # Run script as root
-    execute_command = "echo ${local.bws_secrets["vm-template-user-password"]} | sudo -S {{.Vars}} bash {{.Path}}"
+    execute_command = "echo '${local.bws_secrets["vm-template-user-password"]}' | sudo -S {{.Vars}} bash {{.Path}}"
     script          = "scripts/provision.sh"
   }
 
