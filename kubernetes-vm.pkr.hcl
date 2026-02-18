@@ -94,7 +94,7 @@ source "proxmox-iso" "vm" {
   memory             = var.memory_maximum
   ballooning_minimum = 0
   cores              = var.cpu_cores
-  cpu_type           = "host"
+  cpu_type           = "x86-64-v3"
   sockets            = var.cpu_sockets
   os                 = "l26"
   bios               = "seabios"
