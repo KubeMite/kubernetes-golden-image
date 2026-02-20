@@ -2,8 +2,6 @@
 #
 # Configure hardened Kubernetes node golden image
 
-#TODO: Make this install kubernetes
-
 # Set non-interactive frontend to prevent apt hangs
 export DEBIAN_FRONTEND=noninteractive
 
@@ -551,6 +549,145 @@ kubernetes_sysctl_networking() {
   } > /etc/sysctl.d/k8s.conf
 }
 
+# Kubeadm, kubelet, kubectl, helm
+install_kubernetes_utilities() {
+  local KUBERNETES_VERSION="1.35.1"
+  local HELM_VERSION="4.1.1"
+
+  # Download, verify and install utilities
+  for utility in kubeadm kubelet kubectl; do
+    ## Download
+    curl -fsSL "https://dl.k8s.io/v$KUBERNETES_VERSION/bin/linux/amd64/$utility" -o "/usr/bin/$utility"
+    curl -fsSL -O "https://dl.k8s.io/v$KUBERNETES_VERSION/bin/linux/amd64/$utility.{sha256,sig,cert}"
+    ## Verify sha256
+    if ! echo "$(cat $utility.sha256) /usr/bin/$utility" | sha256sum --check; then
+      echo "Sha256sum of $utility is incorrect!"
+      exit 1
+    fi
+    ## Verify file signature
+    if ! cosign verify-blob "/usr/bin/$utility" \
+        --signature "$utility.sig" \
+        --certificate "$utility.cert" \
+        --certificate-identity krel-staging@k8s-releng-prod.iam.gserviceaccount.com \
+        --certificate-oidc-issuer https://accounts.google.com; then
+      echo "Couldn't verify the file signature of $utility"
+      exit 1
+    fi
+    ## Make sure binary is executable
+    chmod +x "/usr/bin/$utility"
+    ## Cleanup
+    rm "$utility".{sha256,sig,cert}
+  done
+
+  # Install kubelet & kubeadm systemd service definitions
+  curl -fsSL "https://raw.githubusercontent.com/kubernetes/release/v0.16.2/cmd/krel/templates/latest/kubelet/kubelet.service" \
+          -o /usr/lib/systemd/system/kubelet.service
+  sudo mkdir -p /usr/lib/systemd/system/kubelet.service.d
+  curl -fsSL "https://raw.githubusercontent.com/kubernetes/release/v0.16.2/cmd/krel/templates/latest/kubeadm/10-kubeadm.conf" \
+          -o /usr/lib/systemd/system/kubelet.service.d/10-kubeadm.conf
+
+  # Helm
+  ## Download
+  curl -fsSL -O "https://get.helm.sh/helm-v$HELM_VERSION-linux-amd64.tar.gz{.sha256sum,}"
+  curl -fsSL -O "https://github.com/helm/helm/releases/download/v$HELM_VERSION/helm-v$HELM_VERSION-linux-amd64.tar.gz.{asc,sha256sum.asc}"
+  curl -fsSL "https://raw.githubusercontent.com/helm/helm/refs/tags/v$HELM_VERSION/KEYS" \
+          -o "helm-v$HELM_VERSION-KEYS"
+  ## Verify signature
+  gpg --keyserver keys.openpgp.org --recv-keys BF888333D96A1C18E2682AAED79D67C9EC016739
+  curl -fsSL "https://raw.githubusercontent.com/helm/helm/refs/tags/v$HELM_VERSION/KEYS" | gpg --import --quiet
+  if ! gpg --verify "helm-v$HELM_VERSION-linux-amd64.tar.gz.asc" \
+                    "helm-v$HELM_VERSION-linux-amd64.tar.gz"; then
+    echo "Couldn't verify the file signature of helm binary file"
+    exit 1
+  fi
+  if ! gpg --verify "helm-v$HELM_VERSION-linux-amd64.tar.gz.sha256sum.asc" \
+                    "helm-v$HELM_VERSION-linux-amd64.tar.gz.sha256sum"; then
+    echo "Couldn't verify the file signature of helm sha256 file"
+    exit 1
+  fi
+  ## Verify sha256
+  if ! sha256sum -c helm-v$HELM_VERSION-linux-amd64.tar.gz.sha256sum; then
+    echo "Sha256sum of helm is incorrect!"
+    exit 1
+  fi
+  ## Install
+  tar zxf helm-v4.1.1-linux-amd64.tar.gz --strip-components=1 -C /usr/local/bin linux-amd64/helm
+  ## Cleanup
+  rm helm-v"$HELM_VERSION"*
+}
+
+# Install Kubernetes container runtime interface
+install_cri() {
+  local CONTAINERD_VERSION="2.2.1"
+  local RUNC_VERSION="1.4.0"
+  local CNI_PLUGIN_VERSION="1.9.0"
+
+  # Containerd
+  ## Download
+  curl -fsSL -O "https://github.com/containerd/containerd/releases/download/v$CONTAINERD_VERSION/containerd-$CONTAINERD_VERSION-linux-amd64.tar.gz"
+  curl -fsSL "https://github.com/containerd/containerd/releases/download/v$CONTAINERD_VERSION/containerd-$CONTAINERD_VERSION-linux-amd64.tar.gz.sha256sum" \
+          -o containerd.tar.gz.sha256sum
+  ## Check sha256
+  if ! sha256sum -c containerd.tar.gz.sha256sum; then
+    echo "sha256sum of containerd not correct!"
+    exit 1
+  fi
+  ## Install
+  tar Cxzf /usr/local "containerd-$CONTAINERD_VERSION-linux-amd64.tar.gz"
+  ## Cleanup
+  rm containerd*
+  ## Set systemd service
+  mkdir -p /usr/local/lib/systemd/system
+  curl -fsSL "https://raw.githubusercontent.com/containerd/containerd/refs/tags/v$CONTAINERD_VERSION/containerd.service" -o /usr/local/lib/systemd/system/containerd.service
+  systemctl enable containerd
+  ## Configure the systemd cgroup driver
+  mkdir -p /etc/containerd
+  containerd config default > /etc/containerd/config.toml
+  sed -i "s/SystemdCgroup = false/SystemdCgroup = true/g" /etc/containerd/config.toml
+
+  # Runc
+  ## Download
+  curl -fsSL -O "https://github.com/opencontainers/runc/releases/download/v$RUNC_VERSION/runc.amd64"
+  curl -fsSL -O "https://raw.githubusercontent.com/opencontainers/runc/refs/tags/v$RUNC_VERSION/runc.keyring"
+  curl -fsSL -O "https://github.com/opencontainers/runc/releases/download/v$RUNC_VERSION/runc.amd64.asc"
+  curl -fsSL -O "https://github.com/opencontainers/runc/releases/download/v$RUNC_VERSION/runc.sha256sum"
+  ## Validate the file
+  gpg --import --quiet runc.keyring
+  ### Check runc.amd64 signature
+  if ! gpg --verify runc.amd64.asc runc.amd64; then
+    echo "Could not verify runc file signature!"
+    exit 1
+  fi
+  ### Check runc.sha256sum signature
+  if ! gpg --verify runc.sha256sum; then
+    echo "Could not verify the runc.sha256sum signature!"
+    exit 1
+  fi
+  ### Check runc.amd64 sha256sum
+  if ! grep runc.amd64 runc.sha256sum | sha256sum --check; then
+    echo "Could not verify the runc.amd64 sha256sum!"
+    exit 1
+  fi
+  ## Install
+  install -m 755 runc.amd64 /usr/local/sbin/runc
+  ## Cleanup
+  rm runc*
+
+  # cni plugin
+  ## Download
+  curl -fsSL -O "https://github.com/containernetworking/plugins/releases/download/v$CNI_PLUGIN_VERSION/cni-plugins-linux-amd64-v$CNI_PLUGIN_VERSION.tgz{.sha256,}"
+  ## Check sha256
+  if ! sha256sum -c "cni-plugins-linux-amd64-v$CNI_PLUGIN_VERSION.tgz.sha256"; then
+    echo "Could not verify the cni-plugin sha256sum!"
+    exit 1
+  fi
+  ## Install
+  mkdir -p /opt/cni/bin
+  tar Cxzf /opt/cni/bin "cni-plugins-linux-amd64-v$CNI_PLUGIN_VERSION.tgz"
+  ## Cleanup
+  rm cni-plugins-linux-amd64*
+}
+
 main() {
   # Harden filesystems
   restrict_unused_filesystems
@@ -586,7 +723,9 @@ main() {
 
   # Kubernetes
   kubernetes_sysctl_networking
-
+  sed -i '/\sswap\s/ s/^/#/' /etc/fstab # Disable swap
+  install_kubernetes_utilities
+  install_cri
 }
 
 main
