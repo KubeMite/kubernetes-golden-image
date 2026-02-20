@@ -67,7 +67,6 @@ source "proxmox-iso" "vm" {
         storage_var_log_audit_size_mb = var.storage_var_log_audit_size_mb
         storage_var_log_size_mb       = var.storage_var_log_size_mb
         storage_var_size_mb           = var.storage_var_size_mb
-        packages_to_install           = var.packages_to_install
       })
     }
   }
@@ -152,8 +151,9 @@ build {
 
   provisioner "shell" {
     # Run script as root
-    execute_command = "echo '${local.bws_secrets["vm-template-user-password"]}' | sudo -S {{.Vars}} bash {{.Path}}"
-    script          = "scripts/provision.sh"
+    execute_command  = "echo '${local.bws_secrets["vm-template-user-password"]}' | sudo -S {{.Vars}} bash {{.Path}}"
+    environment_vars = ["APT_PACKAGES=${var.packages_to_install}"]
+    script           = "scripts/provision.sh"
   }
 
   post-processor "manifest" {

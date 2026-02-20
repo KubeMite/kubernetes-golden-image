@@ -100,6 +100,26 @@ connection_warning() {
   done
 }
 
+# Harden APT and apt-related utilities and install packages
+apt_configuration() {
+  # Ensure apt uses the debian keyring
+  sed -i 's|^deb |deb [signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] |' /etc/apt/sources.list
+  sed -i 's|^deb-src |deb-src [signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] |' /etc/apt/sources.list
+
+  # Ensure downloading packages uses https
+  sed -i 's/http/https/g' /etc/apt/sources.list
+
+  # Ensure weak dependencies are not downloaded and installed
+  {
+    echo 'APT::Install-Recommends "0";'
+    echo 'APT::Install-Suggests "0";'
+  } > /etc/apt/apt.conf.d/60-no-weak-dependencies
+
+  # Install required packages
+  apt update
+  apt install -y $APT_PACKAGES
+}
+
 # Harden permissions for folder permissions related to users & groups
 harden_user_group_folder_permissions() {
   chown root:root /etc/gshadow
@@ -198,22 +218,6 @@ harden_ssh() {
   chown -R user:user /home/user/.ssh
   chmod 700 /home/user/.ssh
   chmod 600 /home/user/.ssh/authorized_keys
-}
-
-# Harden APT and apt-related utilities
-apt_configuration() {
-  # Ensure apt uses the debian keyring
-  sed -i 's|^deb |deb [signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] |' /etc/apt/sources.list
-  sed -i 's|^deb-src |deb-src [signed-by=/usr/share/keyrings/debian-archive-keyring.gpg] |' /etc/apt/sources.list
-
-  # Ensure downloading packages uses https
-  sed -i 's/http/https/g' /etc/apt/sources.list
-
-  # Ensure weak dependencies are not downloaded and installed
-  {
-    echo 'APT::Install-Recommends "0";'
-    echo 'APT::Install-Suggests "0";'
-  } > /etc/apt/apt.conf.d/60-no-weak-dependencies
 }
 
 # Hardens cron files & folders permissions
@@ -564,6 +568,9 @@ main() {
 
   connection_warning
 
+  # APT
+  apt_configuration
+
   # Users & Groups
   harden_user_group_folder_permissions
   sudo_hardening
@@ -571,9 +578,6 @@ main() {
 
   # SSH
   harden_ssh
-
-  # APT
-  apt_configuration
 
   # Third-party utilities
   harden_cron

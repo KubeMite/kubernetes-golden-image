@@ -177,7 +177,7 @@ tasksel tasksel/first multiselect standard system utilities
 d-i pkgsel/run_tasksel string
 d-i pkgsel/upgrade select safe-upgrade
 popularity-contest popularity-contest/participate boolean false
-d-i pkgsel/include string ${packages_to_install}
+d-i pkgsel/include string openssh-server sudo ca-certificates
 
 # Boot loader
 d-i grub-installer/only_debian boolean true
