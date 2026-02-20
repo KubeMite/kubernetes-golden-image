@@ -4,6 +4,9 @@
 
 #TODO: Make this install kubernetes
 
+# Set non-interactive frontend to prevent apt hangs
+export DEBIAN_FRONTEND=noninteractive
+
 # Disable filesystem drivers for unused filesystems, which decreases the attack surface
 restrict_unused_filesystems() {
   local filesystem_blacklist_file="/etc/modprobe.d/fs-blacklist.conf"
