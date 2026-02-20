@@ -125,7 +125,7 @@ source "proxmox-iso" "vm" {
     "initrd=/install.amd/initrd.gz ",
     "auto-install/enable=true ",
     "debconf/priority=critical ",
-    "preseed/file=/mnt/cdrom2/preseed.cfg<enter><wait40>",
+    "preseed/file=/mnt/cdrom2/preseed.cfg<enter><wait30>",
     # Switch to another terminal
     "<leftAltOn><f2><leftAltOff><wait3>",
     "<enter><wait3>",
