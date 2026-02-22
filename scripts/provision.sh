@@ -2,6 +2,9 @@
 #
 # Configure hardened Kubernetes node golden image
 
+# TODO: Install CNI (cilium) and CSI (to be decided)
+# TODO: Maybe install cilium using helm as a startup command on one of the nodes?
+
 # Set non-interactive frontend to prevent apt hangs
 export DEBIAN_FRONTEND=noninteractive
 
@@ -506,10 +509,12 @@ cloud_init() {
     echo "# The modules that run in the 'config' stage"
     echo "cloud_config_modules:"
     echo "  - set-passwords"
+    echo "  - runcmd"
     echo
     echo "# The modules that run in the 'final' stage"
     echo "cloud_final_modules:"
     echo "  - ssh"
+    echo "  - scripts_user"
     echo "  - final_message"
     echo
     echo "# System and/or distro specific settings"
