@@ -198,7 +198,7 @@ variable "packages_to_install" {
   type        = string
   sensitive   = false
   description = "Apt packages that will be installed in the vm, e.g. man htop"
-  default     = "man htop ncdu vim gpg gpg-agent curl wget iptables iptables-persistent tcpdump dnsutils net-tools traceroute needrestart libpam-tmpdir apt-listchanges bash-completion qemu-guest-agent systemd-timesyncd auditd audispd-plugins unattended-upgrades haveged cloud-init cosign dirmngr"
+  default     = "man htop ncdu vim gpg gpg-agent curl wget iptables iptables-persistent tcpdump dnsutils net-tools traceroute needrestart libpam-tmpdir apt-listchanges bash-completion qemu-guest-agent systemd-timesyncd auditd audispd-plugins unattended-upgrades haveged cloud-init cosign dirmngr keepalived haproxy"
 }
 
 variable "ssh_port" {

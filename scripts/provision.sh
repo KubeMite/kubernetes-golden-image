@@ -698,6 +698,105 @@ install_kubernetes_utilities() {
   rm helm-v"$HELM_VERSION"*
 }
 
+# Use keepalived+haproxy to configure ha between control-plane nodes using a VIP
+configure_ha() {
+  # Keepalived configuration
+  {
+    echo "global_defs {"
+    echo "  script_user root"
+    echo "  enable_script_security"
+    echo "}"
+    echo
+    echo "vrrp_script chk_haproxy {"
+    echo "  script "/etc/keepalived/check_apiserver.sh""
+    echo "  interval 2"
+    echo "  weight 10"
+    echo "  fall 3"
+    echo "  rise 2"
+    echo "}"
+    echo
+    echo "vrrp_instance VI_1 {"
+    echo "  @host01 state MASTER"
+    echo "  @host02 state BACKUP"
+    echo "  @host03 state BACKUP"
+    echo "  interface ens18"
+    echo "  advert_int 1"
+    echo "  virtual_router_id 188"
+    echo
+    echo "  @host01 priority 105"
+    echo "  @host02 priority 100"
+    echo "  @host03 priority 95"
+    echo
+    echo "  authentication {"
+    echo "    auth_type PASS"
+    echo "    auth_pass k8s-ha"
+    echo "  }"
+    echo
+    echo "  virtual_ipaddress {"
+    echo "    172.16.3.10"
+    echo "  }"
+    echo
+    echo "  track_script {"
+    echo "    chk_haproxy"
+    echo "  }"
+    echo "}"
+  } > /etc/keepalived/keepalived.conf
+  {
+    echo '#!/bin/sh'
+    echo "errorExit() {"
+    echo '  echo "*** $*" 1>&2'
+    echo "  exit 1"
+    echo "}"
+    echo
+    echo "# Try to connect to the local API server"
+    echo "curl --silent --max-time 5 -k https://localhost:6443/healthz || errorExit 'Error GET https://localhost:6443/healthz'"
+  } > /etc/keepalived/check_apiserver.sh
+  chmod +x /etc/keepalived/check_apiserver.sh
+  ## We enable the haproxy only on master nodes when provisioning the cluster
+  systemctl disable --now haproxy
+
+  # haproxy configuration
+  {
+    echo "global"
+    echo "  log /dev/log local0"
+    echo "  log /dev/log local1 notice"
+    echo "  maxconn 2000"
+    echo "  chroot /var/lib/haproxy"
+    echo "  stats socket /run/haproxy/admin.sock mode 660 level admin"
+    echo "  stats timeout 30s"
+    echo "  user haproxy"
+    echo "  group haproxy"
+    echo "  daemon"
+    echo
+    echo "defaults"
+    echo "  log	    global"
+    echo "  mode    tcp"
+    echo "  option  tcplog"
+    echo "  option  dontlognull"
+    echo "  option  redispatch"
+    echo "  retries 3"
+    echo "  maxconn 2000"
+    echo "  timeout connect 30s"
+    echo "  timeout client  1h"
+    echo "  timeout server  1h"
+    echo "  timeout check   10s"
+    echo
+    echo "frontend kubernetes-api"
+    echo "  bind *:8443             # HAProxy listens on 8443 to avoid conflict with API server"
+    echo "  default_backend kubernetes-master-nodes"
+    echo
+    echo "backend kubernetes-master-nodes"
+    echo "  balance roundrobin"
+    echo "  option tcp-check"
+    echo "  server host01 172.16.3.11:6443 check inter 2s fall 3 rise 2"
+    echo "  server host02 172.16.3.12:6443 check inter 2s fall 3 rise 2"
+    echo "  server host03 172.16.3.13:6443 check inter 2s fall 3 rise 2"
+  } > /etc/haproxy/haproxy.cfg
+  ## We enable the haproxy only on master nodes when provisioning the cluster
+  systemctl disable --now haproxy
+
+}
+
 main() {
   # Harden filesystems
   restrict_unused_filesystems
@@ -736,6 +835,7 @@ main() {
   sed -i '/\sswap\s/ s/^/#/' /etc/fstab # Disable swap
   install_cri
   install_kubernetes_utilities
+  configure_ha
 }
 
 main
