@@ -794,7 +794,6 @@ configure_ha() {
   } > /etc/haproxy/haproxy.cfg
   ## We enable the haproxy only on master nodes when provisioning the cluster
   systemctl disable --now haproxy
-
 }
 
 main() {
@@ -836,6 +835,7 @@ main() {
   install_cri
   install_kubernetes_utilities
   configure_ha
+  cilium_cli
 }
 
 main
