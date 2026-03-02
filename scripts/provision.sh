@@ -855,6 +855,259 @@ configure_ha() {
   systemctl disable --now haproxy
 }
 
+# Install the required tools for the CNI of the kubernetes cluster (the CNI itself will only be installed after the cluster is set up)
+install_cni() {
+  local CILIUM_VERSION=1.19.1
+  local CILIUM_CLI_VERSION=0.19.2
+
+  # Helm chart
+  ## Validate helm chart
+  if ! cosign verify \
+      --certificate-identity-regexp='https://github.com/cilium/cilium/.*' \
+      --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
+      "quay.io/cilium/charts/cilium:$CILIUM_VERSION" 1>/dev/null; then
+    echo "Could not verify Cilium helm chart version $CILIUM_VERSION!"
+    exit 1
+  fi
+  ## Configure helm chart
+  mkdir -p /etc/kubernetes/helm/cilium
+  {
+    echo "rollOutCiliumPods: true"
+    echo
+    echo "resources:"
+    echo "  limits:"
+    echo "    cpu: 500m"
+    echo "    memory: 1Gi"
+    echo "  requests:"
+    echo "    cpu: 100m"
+    echo "    memory: 512Mi"
+    echo
+    echo "annotateK8sNode: true"
+    echo
+    echo "l2announcements:"
+    echo "  enabled: true"
+    echo
+    echo "l2podAnnouncements:"
+    echo "  enabled: true"
+    echo "  interface: ens18"
+    echo "  interfacePattern: ens*"
+    echo
+    echo "bgpControlPlane:"
+    echo "  enabled: true"
+    echo
+    echo "pmtuDiscovery:"
+    echo "  enabled: true"
+    echo
+    echo "bpf:"
+    echo "  distributedLRU:"
+    echo "    enabled: true"
+    echo "  lbExternalClusterIP: true"
+    echo "  masquerade: true"
+    echo
+    echo "cni:"
+    echo "  resources:"
+    echo "    requests:"
+    echo "      cpu: 100m"
+    echo "      memory: 10Mi"
+    echo "    limits:"
+    echo "      cpu: 500m"
+    echo "      memory: 100Mi"
+    echo
+    echo "ciliumEndpointSlice:"
+    echo "  enabled: true"
+    echo
+    echo "envoyConfig:"
+    echo "  enabled: true"
+    echo
+    echo "ingressController:"
+    echo "  enabled: true"
+    echo "  default: true"
+    echo
+    echo "gatewayAPI:"
+    echo "  enabled: true"
+    echo
+    echo "encryption:"
+    echo "  enabled: true"
+    echo "  type: wireguard"
+    echo "  nodeEncryption: true"
+    echo "  egress:"
+    echo "    enabled: true"
+    echo "  ingress:"
+    echo "    enabled: true"
+    echo
+    echo "socketLB:"
+    echo "  enabled: true"
+    echo
+    echo "certgen:"
+    echo "  resources:"
+    echo "    requests:"
+    echo "      cpu: 100m"
+    echo "      memory: 100Mi"
+    echo "    limits:"
+    echo "      cpu: 500m"
+    echo "      memory: 500Mi"
+    echo
+    echo "hubble:"
+    echo "  metrics:"
+    echo "    serviceMonitor:"
+    echo "      enabled: true"
+    echo "    dashboards:"
+    echo "      enabled: true"
+    echo "    dynamic:"
+    echo "      enabled: true"
+    echo "  relay:"
+    echo "    enabled: true"
+    echo "    rollOutPods: true"
+    echo "    resources:"
+    echo "      limits:"
+    echo "        cpu: 500m"
+    echo "        memory: 500Mi"
+    echo "      requests:"
+    echo "        cpu: 100m"
+    echo "        memory: 100Mi"
+    echo "    replicas: 3"
+    echo "    sortBufferLenMax: 100"
+    echo "    sortBufferDrainTimeout: 1s"
+    echo "    prometheus:"
+    echo "      enabled: true"
+    echo "      serviceMonitor:"
+    echo "        enabled: true"
+    echo "    pprof:"
+    echo "      enabled: true"
+    echo "  ui:"
+    echo "    enabled: true"
+    echo "    rollOutPods: true"
+    echo "    backend:"
+    echo "      livenessProbe:"
+    echo "        enabled: false # Broken, see https://github.com/cilium/cilium/pull/43607"
+    echo "      readinessProbe:"
+    echo "        enabled: false # Broken, see https://github.com/cilium/cilium/pull/43607"
+    echo "      resources:"
+    echo "        limits:"
+    echo "          cpu: 500m"
+    echo "          memory: 300Mi"
+    echo "        requests:"
+    echo "          cpu: 100m"
+    echo "          memory: 64Mi"
+    echo "    frontend:"
+    echo "      resources:"
+    echo "        limits:"
+    echo "          cpu: 500m"
+    echo "          memory: 300Mi"
+    echo "        requests:"
+    echo "          cpu: 100m"
+    echo "          memory: 64Mi"
+    echo "    replicas: 2"
+    echo "    ingress:"
+    echo "      enabled: true"
+    echo "    dynamic:"
+    echo "      enabled: true"
+    echo
+    echo "ipMasqAgent:"
+    echo "  enabled: true"
+    echo "enableIPv4Masquerade: true"
+    echo
+    echo "l2NeighDiscovery:"
+    echo "  enabled: true"
+    echo
+    echo "localRedirectPolicies:"
+    echo "  enabled: true"
+    echo
+    echo "logSystemLoad: true"
+    echo
+    echo "monitor:"
+    echo "  enabled: true"
+    echo
+    echo "loadBalancer:"
+    echo "  acceleration: best-effort"
+    echo
+    echo "l7:"
+    echo "  backend: envoy"
+    echo "  algorithm: least_request"
+    echo
+    echo "pprof:"
+    echo "  enabled: true"
+    echo
+    echo "prometheus:"
+    echo "  metricsService: true"
+    echo "  enabled: true"
+    echo
+    echo "dashboards:"
+    echo "  enabled: true"
+    echo
+    echo "envoy:"
+    echo "  rollOutPods: true"
+    echo "  resources:"
+    echo "    limits:"
+    echo "      cpu: 5000m"
+    echo "      memory: 1Gi"
+    echo "    requests:"
+    echo "      cpu: 100m"
+    echo "      memory: 200Mi"
+    echo "  prometheus:"
+    echo "    serviceMonitor:"
+    echo "      enabled: true"
+    echo
+    echo "operator:"
+    echo "  rollOutPods: true"
+    echo "  resources:"
+    echo "    limits:"
+    echo "      cpu: 500m"
+    echo "      memory: 500Mi"
+    echo "    requests:"
+    echo "      cpu: 100m"
+    echo "      memory: 100Mi"
+    echo "  pprof:"
+    echo "    enabled: true"
+    echo "  prometheus:"
+    echo "    metricsService: true"
+    echo "    serviceMonitor:"
+    echo "      enabled: true"
+    echo "  dashboards:"
+    echo "    enabled: true"
+    echo
+    echo "cgroup:"
+    echo "  resources:"
+    echo "    limits:"
+    echo "      cpu: 100m"
+    echo "      memory: 128Mi"
+    echo "    requests:"
+    echo "      cpu: 100m"
+    echo "      memory: 128Mi"
+  } > /etc/kubernetes/helm/cilium/values.yaml
+  ## Download images for helm chart
+  local cilium_images="$( { helm template cilium oci://quay.io/cilium/charts/cilium --values /etc/kubernetes/helm/cilium/values.yaml --set prometheus.serviceMonitor.trustCRDsExist=true --version 1.19.1 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep -oE '(quay.*)' | tr -d '"' | sort -u )"
+  for image in $cilium_images; do
+    nerdctl pull -q "$image"
+  done
+
+  # cilium CLI
+  ## Download
+  curl -fsSL -O "https://github.com/cilium/cilium-cli/releases/download/v$CILIUM_CLI_VERSION/cilium-linux-amd64.tar.gz{,.sha256sum}"
+  ## Verify
+  if ! sha256sum -c cilium-linux-amd64.tar.gz.sha256sum; then
+    echo "Cloud not verify sha256sum of cilium cli!"
+    exit 1
+  fi
+  ## Install
+  tar Cxzf /usr/local/bin cilium-linux-amd64.tar.gz
+  ## Cleanup
+  rm cilium*
+}
+
+prometheus_crd()
+{
+  local PROMETHEUS_OPERATOR_VERSION="0.89.0"
+
+  mkdir -p /etc/kubernetes/yaml-resources/prometheus/
+  curl -fsSL "https://github.com/prometheus-operator/prometheus-operator/releases/download/v$PROMETHEUS_OPERATOR_VERSION/bundle.yaml" -o /etc/kubernetes/yaml-resources/prometheus/prometheus.yaml
+
+  local prometheus_images="$(cat /etc/kubernetes/yaml-resources/prometheus/prometheus.yaml | grep -oE '(quay.*)')"
+  for image in $prometheus_images; do
+    nerdctl pull -q "$image"
+  done
+}
+
 main() {
   # Harden filesystems
   restrict_unused_filesystems
@@ -895,7 +1148,8 @@ main() {
   install_cri
   install_kubernetes_utilities
   configure_ha
-  cilium_cli
+  install_cni
+  prometheus_crd
 }
 
 main
