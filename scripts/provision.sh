@@ -2,9 +2,6 @@
 #
 # Configure hardened Kubernetes node golden image
 
-# TODO: Install CNI (cilium) and CSI (to be decided)
-# TODO: Maybe install cilium using helm as a startup command on one of the nodes?
-
 # Set non-interactive frontend to prevent apt hangs
 export DEBIAN_FRONTEND=noninteractive
 
