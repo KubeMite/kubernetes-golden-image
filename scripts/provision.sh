@@ -587,6 +587,7 @@ kubernetes_sysctl_networking() {
 # Install Kubernetes container runtime interface
 install_cri() {
   local CONTAINERD_VERSION="2.2.1"
+  local NERDCTL_VERSION="2.2.1"
   local RUNC_VERSION="1.4.0"
   local CNI_PLUGIN_VERSION="1.9.0"
 
@@ -612,6 +613,25 @@ install_cri() {
   mkdir -p /etc/containerd
   containerd config default > /etc/containerd/config.toml
   sed -i "s/SystemdCgroup = false/SystemdCgroup = true/g" /etc/containerd/config.toml
+
+  # Nerdctl
+  ## Download
+  curl -fsSL -O "https://github.com/containerd/nerdctl/releases/download/v$NERDCTL_VERSION/{nerdctl-$NERDCTL_VERSION-linux-amd64.tar.gz,SHA256SUMS,SHA256SUMS.asc}"
+  ## Validate
+  gpg --keyserver keys.openpgp.org --recv-keys C020EA876CE4E06C7AB95AEF49524C6F9F638F1A
+  if ! gpg --verify SHA256SUMS.asc SHA256SUMS; then
+    echo "Could not verify nerdctl sha256sum file signature!"
+    exit 1
+  fi
+  if ! grep "nerdctl-$NERDCTL_VERSION-linux-amd64.tar.gz" SHA256SUMS | sha256sum --check; then
+    echo "Could not verify nerdctl sha256sum!"
+    exit 1
+  fi
+  ## Install
+  tar Cxzf /usr/local/bin "nerdctl-$NERDCTL_VERSION-linux-amd64.tar.gz"
+  ## Cleanup
+  rm "nerdctl-$NERDCTL_VERSION-linux-amd64.tar.gz"
+  rm SHA256SUMS*
 
   # Runc
   ## Download
