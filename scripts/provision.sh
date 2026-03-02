@@ -544,6 +544,36 @@ cloud_init() {
   cloud-init clean --logs --seed --machine-id
 }
 
+# Install the cosign package in order to verify file signatures
+setup_cosign() {
+  local COSIGN_VERSION=3.0.5
+
+  # Download
+  curl -fsSL -O "https://github.com/sigstore/cosign/releases/download/v$COSIGN_VERSION/{cosign-linux-amd64,cosign-linux-amd64.sigstore.json,cosign_checksums.txt}"
+
+  # Verify sha256
+  if ! grep -w cosign-linux-amd64 cosign_checksums.txt | sha256sum --check; then
+    echo "Sha256sum of cosign-linux-amd64 is incorrect!"
+    exit 1
+  fi
+
+  # Install
+  mv cosign-linux-amd64 /usr/bin/cosign
+  chmod +x /usr/bin/cosign
+
+  # Verify signature
+  if ! cosign verify-blob /usr/bin/cosign \
+      --bundle cosign-linux-amd64.sigstore.json \
+      --certificate-identity keyless@projectsigstore.iam.gserviceaccount.com \
+      --certificate-oidc-issuer https://accounts.google.com; then
+    echo "Couldn't verify the file signature of cosign"
+    exit 1
+  fi
+
+  # cleanup
+  rm cosign*
+}
+
 # Set sysctl networking options for kubernetes
 kubernetes_sysctl_networking() {
   {
@@ -828,6 +858,7 @@ main() {
   auditd
   unattended_upgrades
   cloud_init
+  setup_cosign
 
   # Kubernetes
   kubernetes_sysctl_networking
