@@ -7,12 +7,17 @@ Run only on initial setup:
     ```sh
     packer init .
     ```
-Create a variables file:
+- Create a variables file:
 ```sh
 touch variables.auto.pkrvars
 ```
-- Then put the variables name and value in a key=value format
+- Then put the following variables in that file:
+```
+bws_token      = "<bws-machine-account-token>"
+bws_project_id = "<bws-project-id>"
+```
 
+To run the code:
 Validate the code:
 ```sh
 packer fmt .
