@@ -1,4 +1,4 @@
-name: Prod
+name: Pull Request to main
 
 on:
   pull_request:
