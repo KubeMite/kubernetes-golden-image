@@ -19,11 +19,18 @@ variable "proxmox_node" {
   default     = "pve"
 }
 
+variable "template_id" {
+  type = number
+  sensitive = false
+  description = "The ID of the vm template after the vm is configured"
+  default = 104
+}
+
 variable "template_name" {
   type        = string
   sensitive   = false
   description = "The name of the vm template after the vm is configured"
-  default     = "template"
+  default     = "template-created-manually"
 }
 
 variable "template_description" {

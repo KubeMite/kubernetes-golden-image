@@ -110,6 +110,7 @@ source "proxmox-iso" "vm" {
 
   # VM location & name
   node                 = var.proxmox_node
+  vm_id                = var.template_id
   template_name        = var.template_name
   template_description = var.template_description
 
