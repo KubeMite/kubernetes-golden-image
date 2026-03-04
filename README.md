@@ -17,12 +17,17 @@ bws_token      = "<bws-machine-account-token>"
 bws_project_id = "<bws-project-id>"
 ```
 
-To run the code:
+Format the code:
+```sh
+packer fmt .
+```
+
 Validate the code:
 ```sh
 packer fmt .
 packer validate .
 ```
+
 Run the code:
 ```sh
 packer build .
