@@ -4,9 +4,9 @@
 # This script works with both arm and x86 architecture, with both glibc and musl linux standard library, and with both the apt and apk package managers
 # This script checks the sha256 of the donwloaded file before extracting it
 
-if command -v apk &> /dev/nulll; then
+if sudo command -v apk &> /dev/nulll; then
   apk add curl jq unzip
-elif command -v apt &> /dev/nulll; then
+elif sudo command -v apt &> /dev/nulll; then
   apt update && apt get -y curl jq unzip
 else
   echo "Neither apt nor apk was found"
