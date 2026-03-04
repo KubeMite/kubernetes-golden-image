@@ -20,17 +20,25 @@ runs:
       with:
         version: ${{ inputs.VERSION }}
 
-    - name: Cache Packer plugins
+    - name: Restore cache Packer plugins
       uses: actions/cache@v4
+      id: cache-plugins
       with:
         path: ${{ env.PACKER_PLUGIN_PATH }}
-        key: ${{ runner.os }}-packer-plugins-${{ hashFiles('**') }}
+        key: ${{ runner.os }}-packer-plugins-${{ hashFiles('**/*.pkr.hcl') }}
         restore-keys: |
           ${{ runner.os }}-packer-plugins-
 
     - name: Packer init
       shell: bash
       run: packer init .
+
+    - name: Save Packer plugin cache
+      uses: actions/cache@v4
+      if: success() && steps.cache-plugins.outputs.cache-hit != 'true'
+      with:
+        path: ${{ env.PACKER_PLUGIN_PATH }}
+        key: ${{ runner.os }}-packer-plugins-${{ hashFiles('**/*.pkr.hcl') }}
 
     - name: Validate code
       shell: bash
