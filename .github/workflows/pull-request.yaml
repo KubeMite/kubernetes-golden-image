@@ -25,7 +25,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup Packer & validate Packer configuration
-        uses: ./.github/actions/bws-cli-setup
+        uses: ./.github/actions/packer-setup
         with:
           VERSION: ${{ vars.PACKER_VERSION }}
 
