@@ -1,0 +1,21 @@
+name: Setup Bitwarden secret manager CLI
+
+description: Download & verify Bitwarden secret manager CLI
+
+inputs:
+  VERSION:
+    description: 'Bitwarden secret manager CLI version'
+    required: true
+
+runs:
+  using: composite
+
+  steps:
+    - name: Checkout repo
+      uses: actions/checkout@v6
+
+    - name: Setup Bitwarden secret manager CLI
+      shell: bash
+      run: ${{ github.action_path }}/setup.sh
+      env:
+        REQUESTED_VERSION: ${{ inputs.VERSION }}
