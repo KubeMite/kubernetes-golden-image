@@ -33,13 +33,6 @@ runs:
       shell: bash
       run: packer init .
 
-    - name: Save Packer plugin cache
-      uses: actions/cache@v4
-      if: success() && steps.cache-plugins.outputs.cache-hit != 'true'
-      with:
-        path: ~/.config/packer/plugins
-        key: ${{ runner.os }}-packer-plugins-${{ hashFiles('**/*.pkr.hcl') }}
-
     - name: Validate code
       shell: bash
       run: packer validate .
