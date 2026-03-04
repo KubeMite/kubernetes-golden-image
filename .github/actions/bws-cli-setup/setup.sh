@@ -1,10 +1,16 @@
 #!/bin/bash
-# This script sets up the dev container with needed utilities
-# This script assumes an alpine-linux environment
-# This script works with both arm and x86 architecture, and with both glibc and musl linux standard library
+# This script sets up the environment with needed utilities
+# This script assumes a linux environment
+# This script works with both arm and x86 architecture, with both glibc and musl linux standard library, and with both the apt and apk package managers
 # This script checks the sha256 of the donwloaded file before extracting it
 
-apk add curl jq unzip
+if command -v apk &> /dev/nulll; then
+  apk add curl jq unzip
+elif command -v apt &> /dev/nulll; then
+  apt update && apt get -y curl jq unzip
+else
+  echo "Neither apt nor apk was found"
+fi
 
 ZIP_FILE_NAME="bws.zip"
 HASH_FILE_NAME="bws-sha256-checksums.txt"
