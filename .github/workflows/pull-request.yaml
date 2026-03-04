@@ -7,7 +7,6 @@ on:
 
 env:
   TEMPLATE_ID: 102
-  PACKER_PLUGIN_PATH: ${{ vars.PACKER_PLUGIN_PATH }}
 
 jobs:
 

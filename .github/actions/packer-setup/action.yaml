@@ -24,7 +24,7 @@ runs:
       uses: actions/cache@v4
       id: cache-plugins
       with:
-        path: ${{ env.PACKER_PLUGIN_PATH }}
+        path: ~/.config/packer/plugins
         key: ${{ runner.os }}-packer-plugins-${{ hashFiles('**/*.pkr.hcl') }}
         restore-keys: |
           ${{ runner.os }}-packer-plugins-
@@ -37,7 +37,7 @@ runs:
       uses: actions/cache@v4
       if: success() && steps.cache-plugins.outputs.cache-hit != 'true'
       with:
-        path: ${{ env.PACKER_PLUGIN_PATH }}
+        path: ~/.config/packer/plugins
         key: ${{ runner.os }}-packer-plugins-${{ hashFiles('**/*.pkr.hcl') }}
 
     - name: Validate code
