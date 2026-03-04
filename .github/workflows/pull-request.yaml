@@ -7,6 +7,7 @@ on:
 
 env:
   TEMPLATE_ID: 102
+  PACKER_PLUGIN_PATH: ${{ vars.PACKER_PLUGIN_PATH }}
 
 jobs:
 
@@ -23,10 +24,10 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
 
-      - name: Setup packer
-        uses: hashicorp/setup-packer@main
+      - name: Setup Packer & validate Packer configuration
+        uses: ./.github/actions/bws-cli-setup
         with:
-          version: ${{ vars.PACKER_VERSION }}
+          VERSION: ${{ vars.PACKER_VERSION }}
 
       - name: Setup bws cli
         uses: ./.github/actions/bws-cli-setup
@@ -55,9 +56,6 @@ jobs:
           # Truncate SHA to 7 characters for a cleaner name
           SHORT_SHA=$(git rev-parse --short HEAD)
           echo "name=$CLEAN_BRANCH_NAME-$SHORT_SHA" >> $GITHUB_OUTPUT
-
-      - name: Packer init
-        run: packer init .
 
       - name: Build VM template
         run: |
