@@ -32,6 +32,8 @@ source "proxmox-iso" "vm" {
   # Skip TLS Verification
   insecure_skip_tls_verify = true
 
+  scsi_controller = "virtio-scsi-single"
+
   # ISO location & verification
   boot_iso {
     type             = "scsi"
@@ -136,7 +138,7 @@ source "proxmox-iso" "vm" {
     "<leftAltOn><f1><leftAltOff><wait3>",
     # Try to boot from file again (will work since it is now mounted)
     "<enter><wait><enter><wait><wait>",
-    "<down><down><down><down><enter>"
+    "<down><down><down><down><wait><enter>"
   ]
 
   ssh_username           = var.user_username
