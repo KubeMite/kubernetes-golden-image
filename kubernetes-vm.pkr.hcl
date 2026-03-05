@@ -36,14 +36,14 @@ source "proxmox-iso" "vm" {
   boot_iso {
     type             = "scsi"
     iso_file         = "local:iso/${var.boot_iso}"
-    unmount          = true
+    unmount          = false
     iso_checksum     = "file:${var.boot_iso_checksum_path}"
     iso_storage_pool = "local"
     index            = "0"
   }
   additional_iso_files {
     type             = "scsi"
-    unmount          = true
+    unmount          = false
     iso_storage_pool = "local"
     cd_label         = "PRESEED"
     index            = "1"
@@ -141,6 +141,7 @@ source "proxmox-iso" "vm" {
 
   ssh_username           = var.user_username
   ssh_password           = "${local.bws_secrets["vm-template-user-password"]}"
+  ssh_host               = var.ip
   ssh_port               = var.ssh_port
   ssh_timeout            = "10m"
   ssh_pty                = true
