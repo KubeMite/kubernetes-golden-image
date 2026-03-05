@@ -20,10 +20,10 @@ variable "proxmox_node" {
 }
 
 variable "template_id" {
-  type = number
-  sensitive = false
+  type        = number
+  sensitive   = false
   description = "The ID of the vm template after the vm is configured"
-  default = 104
+  default     = 104
 }
 
 variable "template_name" {
