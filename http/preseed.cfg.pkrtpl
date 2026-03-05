@@ -194,3 +194,4 @@ d-i preseed/late_command string in-target usermod -aG sudo user
 #d-i debian-installer/exit/halt boolean true
 ## Comment the next line to disable automatic reboot for debugging purposes
 d-i finish-install/reboot_in_progress note
+d-i cdrom-detect/eject boolean false

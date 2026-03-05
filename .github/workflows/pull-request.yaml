@@ -1,0 +1,64 @@
+name: Pull Request to main
+
+on:
+  pull_request:
+    branches:
+      - main
+
+env:
+  TEMPLATE_ID: 102
+  TEMPLATE_IP: 172.16.3.202
+
+jobs:
+
+  build:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Setup Packer & validate Packer configuration
+        uses: ./.github/actions/packer-setup
+        with:
+          VERSION: ${{ vars.PACKER_VERSION }}
+
+      - name: Setup bws cli
+        uses: ./.github/actions/bws-cli-setup
+        with:
+          VERSION: ${{ vars.BWS_CLI_VERSION }}
+
+      - name: Connect to tailscale network
+        uses: ./.github/actions/tailscale-setup
+        with:
+          TS_CLIENT_ID: ${{ secrets.TS_CLIENT_ID }}
+          TS_CLIENT_SECRET: ${{ secrets.TS_CLIENT_SECRET }}
+          PROXMOX_IP: ${{ vars.PROXMOX_IP }}
+          PROXMOX_SSH_PORT: ${{ vars.PROXMOX_SSH_PORT }}
+          PROXMOX_API_PORT: ${{ vars.PROXMOX_API_PORT }}
+
+      - name: Install xorriso for ISO creation
+        run: |
+          sudo apt update
+          sudo apt install xorriso
+
+      - name: Determine Template Name
+        id: vars
+        run: |
+          # If branch name contains '/', replace with '-' so Proxmox doesn't error
+          CLEAN_BRANCH_NAME=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
+          # Truncate SHA to 7 characters for a cleaner name
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "name=$CLEAN_BRANCH_NAME-$SHORT_SHA" >> $GITHUB_OUTPUT
+
+      - name: Build VM template
+        run: |
+          packer build -force \
+            -var "template_id=${{ env.TEMPLATE_ID }}" \
+            -var "template_name=kubernets-golden-image-${{ steps.vars.outputs.name }}" \
+            -var "ip=${{ env.TEMPLATE_IP }}" \
+            -var "template_description="${{ github.server_url }}/${{ github.repository }}/tree/${{ github.sha }}"" \
+            .
+        env:
+          BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
+          BWS_PROJECT_ID: ${{ secrets.BWS_PROJECT_ID }}

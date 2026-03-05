@@ -1,0 +1,41 @@
+name: Connect to tailscale network
+
+description: Connect to a tailscale network and validate connection
+
+inputs:
+  TS_CLIENT_ID:
+    description: 'Tailscale client ID'
+    required: true
+  TS_CLIENT_SECRET:
+    description: 'Tailscale client secret'
+    required: true
+  PROXMOX_IP:
+    description: 'IP of the proxmox host'
+    required: true
+  PROXMOX_SSH_PORT:
+    description: 'SSH port of the proxmox host'
+    required: true
+  PROXMOX_API_PORT:
+    description: 'API port of the proxmox host'
+    required: true
+
+runs:
+  using: composite
+
+  steps:
+    - name: Connect to tailscale network
+      uses: tailscale/github-action@v4
+      with:
+        oauth-client-id: ${{ inputs.TS_CLIENT_ID }}
+        oauth-secret: ${{ inputs.TS_CLIENT_SECRET }}
+        tags: tag:ci
+        version: latest
+
+    - name: Check connection to Proxmox host via API
+      uses: nick-fields/retry@v3
+      with:
+        timeout_seconds: 30
+        max_attempts: 3
+        retry_wait_seconds: 10
+        retry_on: timeout
+        command: nc -zv ${{ inputs.PROXMOX_IP }} ${{ inputs.PROXMOX_API_PORT }}

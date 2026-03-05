@@ -1,0 +1,38 @@
+name: Setup environment for packer
+
+description: Download Packer CLI, plugins, and validate configuration
+
+inputs:
+  VERSION:
+    description: 'Packer CLI version'
+    required: true
+
+runs:
+  using: composite
+
+  steps:
+
+    - name: Checkout repo
+      uses: actions/checkout@v6
+
+    - name: Setup packer
+      uses: hashicorp/setup-packer@main
+      with:
+        version: ${{ inputs.VERSION }}
+
+    - name: Restore cache Packer plugins
+      uses: actions/cache@v4
+      id: cache-plugins
+      with:
+        path: ~/.config/packer/plugins
+        key: ${{ runner.os }}-packer-plugins-${{ hashFiles('**/*.pkr.hcl') }}
+        restore-keys: |
+          ${{ runner.os }}-packer-plugins-
+
+    - name: Packer init
+      shell: bash
+      run: packer init .
+
+    - name: Validate code
+      shell: bash
+      run: packer validate .
