@@ -1,16 +1,8 @@
 #!/bin/bash
-# This script sets up the environment with needed utilities
-# This script assumes a linux environment
-# This script works with both arm and x86 architecture, with both glibc and musl linux standard library, and with both the apt and apk package managers
+# This script installs bitwarden secret manager CLI
+# This script assumes a Github runner 24.04 Linux environment
+# This script works with both arm and x86 architecture
 # This script checks the sha256 of the donwloaded file before extracting it
-
-if sudo command -v apk &> /dev/nulll; then
-  apk add curl jq unzip
-elif sudo command -v apt &> /dev/nulll; then
-  apt update && apt get -y curl jq unzip
-else
-  echo "Neither apt nor apk was found"
-fi
 
 ZIP_FILE_NAME="bws.zip"
 HASH_FILE_NAME="bws-sha256-checksums.txt"
@@ -20,16 +12,10 @@ CURRENT_TAG="$(curl -Ss --request GET https://api.github.com/repos/bitwarden/sdk
 CURRENT_VERSION="${CURRENT_TAG#bws-v}"
 VERSION="${REQUESTED_VERSION:-$CURRENT_VERSION}"
 
-if getconf GNU_LIBC_VERSION &> /dev/null; then
-  LINUX_STANDARD_LIBRARY="gnu"
-else
-  LINUX_STANDARD_LIBRARY="musl"
-fi
-
-curl -SsL "https://github.com/bitwarden/sdk-sm/releases/download/bws-v$VERSION/bws-$(uname -m)-unknown-linux-$LINUX_STANDARD_LIBRARY-$VERSION.zip" -o "$ZIP_FILE_NAME"
+curl -SsL "https://github.com/bitwarden/sdk-sm/releases/download/bws-v$VERSION/bws-$(uname -m)-unknown-linux-gnu-$VERSION.zip" -o "$ZIP_FILE_NAME"
 curl -SsL "https://github.com/bitwarden/sdk-sm/releases/download/bws-v$VERSION/bws-sha256-checksums-$VERSION.txt" -o "$HASH_FILE_NAME"
 
-sed -i "s/bws-$(uname -m)-unknown-linux-$LINUX_STANDARD_LIBRARY-$VERSION.zip/$ZIP_FILE_NAME/" "$HASH_FILE_NAME"
+sed -i "s/bws-$(uname -m)-unknown-linux-gnu-$VERSION.zip/$ZIP_FILE_NAME/" "$HASH_FILE_NAME"
 
 if ! grep "$ZIP_FILE_NAME" "$HASH_FILE_NAME" | sha256sum -c; then
   echo "File hash doesnt match expected result"
