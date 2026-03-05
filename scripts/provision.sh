@@ -869,6 +869,9 @@ install_cni() {
   ## Configure helm chart
   mkdir -p /etc/kubernetes/helm/cilium
   {
+    echo "k8sServiceHost: 172.16.3.10"
+    echo "k8sServicePort: 8443"
+    echo
     echo "rollOutCiliumPods: true"
     echo
     echo "resources:"
@@ -1004,6 +1007,8 @@ install_cni() {
     echo "  enabled: true"
     echo "enableIPv4Masquerade: true"
     echo
+    echo "kubeProxyReplacement: true"
+    echo
     echo "l2NeighDiscovery:"
     echo "  enabled: true"
     echo
@@ -1105,6 +1110,13 @@ prometheus_crd()
   done
 }
 
+gatewayapi_crd() {
+  local GATEWAYAPI_VERSION="1.4.1"
+
+  mkdir -p /etc/kubernetes/yaml-resources/gatewayapi/
+  curl -fsSL "https://github.com/kubernetes-sigs/gateway-api/releases/download/v$GATEWAYAPI_VERSION/standard-install.yaml"  -o /etc/kubernetes/yaml-resources/gatewayapi/gatewayapi.yaml
+}
+
 main() {
   # Harden filesystems
   restrict_unused_filesystems
@@ -1147,6 +1159,7 @@ main() {
   configure_ha
   install_cni
   prometheus_crd
+  gatewayapi_crd
 }
 
 main
