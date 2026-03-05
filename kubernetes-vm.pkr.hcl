@@ -176,7 +176,7 @@ build {
       "curl -sS -k -X POST \"$PVE_URL/nodes/$NODE/qemu/$VM_ID/config\" \\",
       "     -H \"Authorization: PVEAPIToken=$PVE_TOKEN\" \\",
       "     --data \"memory=$MEMORY_MAXIMUM&balloon=$MEMORY_MINIMUM\" \\",
-      "     --data \"agent=enabled=1\""
+      "     --data \"agent=1\""
     ]
   }
 }
