@@ -12,12 +12,6 @@ env:
 
 jobs:
 
-  validate:
-    uses: ./.github/workflows/packer-validate.yaml
-    secrets:
-      BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
-      BWS_PROJECT_ID: ${{ secrets.BWS_PROJECT_ID }}
-
   build:
     runs-on: ubuntu-24.04
 
