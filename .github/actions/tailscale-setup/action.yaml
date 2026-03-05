@@ -39,12 +39,3 @@ runs:
         retry_wait_seconds: 10
         retry_on: timeout
         command: nc -zv ${{ inputs.PROXMOX_IP }} ${{ inputs.PROXMOX_API_PORT }}
-
-    - name: Check connection to Proxmox host via SSH
-      uses: nick-fields/retry@v3
-      with:
-        timeout_seconds: 30
-        max_attempts: 3
-        retry_wait_seconds: 10
-        retry_on: timeout
-        command: nc -zv ${{ inputs.PROXMOX_IP }} ${{ inputs.PROXMOX_SSH_PORT }}
