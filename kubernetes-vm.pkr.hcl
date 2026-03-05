@@ -74,7 +74,7 @@ source "proxmox-iso" "vm" {
   # Cloud-init
   cloud_init              = true
   cloud_init_storage_pool = "local-lvm"
-  cloud_init_disk_type    = "ide"
+  cloud_init_disk_type    = "SATA"
 
   # VM hardware
   network_adapters {
@@ -97,7 +97,7 @@ source "proxmox-iso" "vm" {
   sockets            = var.cpu_sockets
   os                 = "l26"
   bios               = "seabios"
-  qemu_agent         = true
+  qemu_agent         = false
   onboot             = true
   disable_kvm        = false
 
@@ -161,7 +161,7 @@ build {
     output = "output/manifest.json"
   }
 
-  # Setting template with balooning device post-setup (debian install is unstable on ballooning device)
+  # Setting template with balooning device post-setup & qemu agent (debian install is unstable on ballooning device and qemu agent)
   post-processor "shell-local" {
     inline = [
       "PVE_URL='${local.bws_secrets["proxmox-api-endpoint"]}/api2/json'",
@@ -172,7 +172,8 @@ build {
       "VM_ID=$(jq -r '.builds[-1].artifact_id' output/manifest.json)",
       "curl -sS -k -X POST \"$PVE_URL/nodes/$NODE/qemu/$VM_ID/config\" \\",
       "     -H \"Authorization: PVEAPIToken=$PVE_TOKEN\" \\",
-      "     --data \"memory=$MEMORY_MAXIMUM&balloon=$MEMORY_MINIMUM\""
+      "     --data \"memory=$MEMORY_MAXIMUM&balloon=$MEMORY_MINIMUM\"",
+      "     --data \"agent=enabled=1\""
     ]
   }
 }
