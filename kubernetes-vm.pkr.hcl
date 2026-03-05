@@ -74,7 +74,7 @@ source "proxmox-iso" "vm" {
   # Cloud-init
   cloud_init              = true
   cloud_init_storage_pool = "local-lvm"
-  cloud_init_disk_type    = "SATA"
+  cloud_init_disk_type    = "sata"
 
   # VM hardware
   network_adapters {
