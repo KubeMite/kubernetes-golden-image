@@ -61,6 +61,7 @@ jobs:
             -var "template_id=${{ env.TEMPLATE_ID }}" \
             -var "template_name=kubernets-golden-image-${{ steps.vars.outputs.name }}" \
             -var "ip=${{ env.TEMPLATE_IP }}" \
+            -var "template_description="${{ github.server_url }}/${{ github.repository }}/tree/${{ github.sha }}"" \
             .
         env:
           BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}
