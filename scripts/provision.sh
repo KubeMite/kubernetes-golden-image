@@ -1004,7 +1004,7 @@ install_cni() {
     echo "      enabled: true"
     echo
     echo "ipMasqAgent:"
-    echo "  enabled: true"
+    echo "  enabled: false"
     echo "enableIPv4Masquerade: true"
     echo
     echo "kubeProxyReplacement: true"
@@ -1021,7 +1021,7 @@ install_cni() {
     echo "  enabled: true"
     echo
     echo "loadBalancer:"
-    echo "  acceleration: best-effort"
+    echo "  acceleration: disabled"
     echo
     echo "l7:"
     echo "  backend: envoy"
@@ -1112,9 +1112,13 @@ prometheus_crd()
 
 gatewayapi_crd() {
   local GATEWAYAPI_VERSION="1.4.1"
+  local GATEWAYAPI_MANIFEST_LOCATION="/etc/kubernetes/yaml-resources/gatewayapi/"
 
-  mkdir -p /etc/kubernetes/yaml-resources/gatewayapi/
-  curl -fsSL "https://github.com/kubernetes-sigs/gateway-api/releases/download/v$GATEWAYAPI_VERSION/standard-install.yaml"  -o /etc/kubernetes/yaml-resources/gatewayapi/gatewayapi.yaml
+  mkdir -p "$GATEWAYAPI_MANIFEST_LOCATION"
+
+  for item in gatewayclasses gateways httproutes referencegrants grpcroutes; do
+    curl -fsSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v$GATEWAYAPI_VERSION/config/crd/standard/gateway.networking.k8s.io_$item.yaml" -o "$GATEWAYAPI_MANIFEST_LOCATION/gateway.networking.k8s.io_$item.yaml"
+  done
 }
 
 main() {
