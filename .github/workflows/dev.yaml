@@ -46,7 +46,7 @@ jobs:
         id: vars
         run: |
           # If branch name contains '/', replace with '-' so Proxmox doesn't error
-          CLEAN_BRANCH_NAME=$(echo "${{ github.ref_name }}" | sed 's/\//-/g')
+          CLEAN_BRANCH_NAME=$(echo "${{ github.ref_name }}" | sed 's/\//-/g' | sed 's/_/-/g' )
           # Truncate SHA to 7 characters for a cleaner name
           SHORT_SHA=$(git rev-parse --short HEAD)
           echo "name=$CLEAN_BRANCH_NAME-$SHORT_SHA" >> $GITHUB_OUTPUT

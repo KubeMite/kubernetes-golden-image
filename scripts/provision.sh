@@ -869,6 +869,9 @@ install_cni() {
   ## Configure helm chart
   mkdir -p /etc/kubernetes/helm/cilium
   {
+    echo "k8sServiceHost: 172.16.3.10"
+    echo "k8sServicePort: 8443"
+    echo
     echo "rollOutCiliumPods: true"
     echo
     echo "resources:"
@@ -882,12 +885,10 @@ install_cni() {
     echo "annotateK8sNode: true"
     echo
     echo "l2announcements:"
-    echo "  enabled: true"
+    echo "  enabled: false"
     echo
     echo "l2podAnnouncements:"
-    echo "  enabled: true"
-    echo "  interface: ens18"
-    echo "  interfacePattern: ens*"
+    echo "  enabled: false"
     echo
     echo "bgpControlPlane:"
     echo "  enabled: true"
@@ -1001,8 +1002,10 @@ install_cni() {
     echo "      enabled: true"
     echo
     echo "ipMasqAgent:"
-    echo "  enabled: true"
+    echo "  enabled: false"
     echo "enableIPv4Masquerade: true"
+    echo
+    echo "kubeProxyReplacement: true"
     echo
     echo "l2NeighDiscovery:"
     echo "  enabled: true"
@@ -1016,7 +1019,7 @@ install_cni() {
     echo "  enabled: true"
     echo
     echo "loadBalancer:"
-    echo "  acceleration: best-effort"
+    echo "  acceleration: disabled"
     echo
     echo "l7:"
     echo "  backend: envoy"
@@ -1105,6 +1108,19 @@ prometheus_crd()
   done
 }
 
+gatewayapi_crd() {
+  local GATEWAYAPI_VERSION="1.4.1"
+  local GATEWAYAPI_MANIFEST_LOCATION="/etc/kubernetes/yaml-resources/gatewayapi/"
+
+  mkdir -p "$GATEWAYAPI_MANIFEST_LOCATION"
+
+  for item in gatewayclasses gateways httproutes referencegrants grpcroutes; do
+    curl -fsSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v$GATEWAYAPI_VERSION/config/crd/standard/gateway.networking.k8s.io_$item.yaml" -o "$GATEWAYAPI_MANIFEST_LOCATION/gateway.networking.k8s.io_$item.yaml"
+  done
+
+  curl -fsSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v$GATEWAYAPI_VERSION/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml" -o "$GATEWAYAPI_MANIFEST_LOCATION/gateway.networking.k8s.io_tlsroutes.yaml"
+}
+
 main() {
   # Harden filesystems
   restrict_unused_filesystems
@@ -1147,6 +1163,7 @@ main() {
   configure_ha
   install_cni
   prometheus_crd
+  gatewayapi_crd
 }
 
 main
