@@ -885,12 +885,10 @@ install_cni() {
     echo "annotateK8sNode: true"
     echo
     echo "l2announcements:"
-    echo "  enabled: true"
+    echo "  enabled: false"
     echo
     echo "l2podAnnouncements:"
-    echo "  enabled: true"
-    echo "  interface: ens18"
-    echo "  interfacePattern: ens*"
+    echo "  enabled: false"
     echo
     echo "bgpControlPlane:"
     echo "  enabled: true"
