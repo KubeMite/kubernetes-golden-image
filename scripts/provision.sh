@@ -1105,7 +1105,7 @@ prometheus_crd()
   curl -fsSL "https://github.com/prometheus-operator/prometheus-operator/releases/download/v$PROMETHEUS_OPERATOR_VERSION/bundle.yaml" -o /etc/kubernetes/yaml-resources/prometheus/prometheus.yaml
 
   local prometheus_images
-  prometheus_images="$(cat /etc/kubernetes/yaml-resources/prometheus/prometheus.yaml | grep -oE '(quay.*)')"
+  prometheus_images="$(grep -oE '(quay.*)' /etc/kubernetes/yaml-resources/prometheus/prometheus.yaml)"
 
   for image in $prometheus_images; do
     nerdctl pull -q "$image"
