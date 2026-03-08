@@ -117,6 +117,7 @@ apt_configuration() {
 
   # Install required packages
   apt update
+  # shellcheck disable=SC2086
   apt install -y -qq $APT_PACKAGES
 }
 
@@ -755,7 +756,7 @@ configure_ha() {
     echo "}"
     echo
     echo "vrrp_script chk_haproxy {"
-    echo "  script "/etc/keepalived/check_apiserver.sh""
+    echo "  script \"/etc/keepalived/check_apiserver.sh\""
     echo "  interval 2"
     echo "  weight -20"
     echo "  fall 3"
@@ -1076,7 +1077,8 @@ install_cni() {
     echo "      memory: 128Mi"
   } > /etc/kubernetes/helm/cilium/values.yaml
   ## Download images for helm chart
-  local cilium_images="$( { helm template cilium oci://quay.io/cilium/charts/cilium --values /etc/kubernetes/helm/cilium/values.yaml --set prometheus.serviceMonitor.trustCRDsExist=true --version 1.19.1 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep -oE '(quay.*)' | tr -d '"' | sort -u )"
+  local cilium_images
+  cilium_images="$( { helm template cilium oci://quay.io/cilium/charts/cilium --values /etc/kubernetes/helm/cilium/values.yaml --set prometheus.serviceMonitor.trustCRDsExist=true --version 1.19.1 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep -oE '(quay.*)' | tr -d '"' | sort -u )"
   for image in $cilium_images; do
     nerdctl pull -q "$image"
   done
@@ -1102,7 +1104,9 @@ prometheus_crd()
   mkdir -p /etc/kubernetes/yaml-resources/prometheus/
   curl -fsSL "https://github.com/prometheus-operator/prometheus-operator/releases/download/v$PROMETHEUS_OPERATOR_VERSION/bundle.yaml" -o /etc/kubernetes/yaml-resources/prometheus/prometheus.yaml
 
-  local prometheus_images="$(cat /etc/kubernetes/yaml-resources/prometheus/prometheus.yaml | grep -oE '(quay.*)')"
+  local prometheus_images
+  prometheus_images="$(grep -oE '(quay.*)' /etc/kubernetes/yaml-resources/prometheus/prometheus.yaml)"
+
   for image in $prometheus_images; do
     nerdctl pull -q "$image"
   done
