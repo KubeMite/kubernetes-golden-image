@@ -1,0 +1,27 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/go
+{
+	"name": "Bash",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {}
+	},
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"mads-hartmann.bash-ide-vscode",
+				"nhoizey.gremlins",
+				"christian-kohler.path-intellisense",
+				"Gruntfuggly.todo-tree",
+				"shardulm94.trailing-spaces"
+			]
+		}
+	}
+
+	//"postCreateCommand": "apk add docs shadow bash bash-completion shellcheck shfmt mandoc man-pages less && chsh --shell /bin/bash root"
+}
