@@ -1,4 +1,14 @@
-FROM alpine:3
+FROM debian:13
 
-RUN apk add docs shadow bash bash-completion shellcheck shfmt mandoc man-pages less
-RUN chsh --shell /bin/bash root
+RUN apt update && \
+    apt install -y --no-install-recommends \
+    bash \
+    bash-completion \
+    less \
+    man-db \
+    manpages \
+    manpages-dev \
+    linux-doc \
+    shellcheck \
+    shfmt && \
+    rm -rf /var/lib/apt/lists/*
