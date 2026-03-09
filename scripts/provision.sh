@@ -868,7 +868,7 @@ install_cni() {
     exit 1
   fi
   ## Configure helm chart
-  mkdir -p /etc/kubernetes/helm/cilium
+  mkdir -p /etc/kubernetes/thirdparty/cilium
   {
     echo "k8sServiceHost: 172.16.3.10"
     echo "k8sServicePort: 8443"
@@ -1075,10 +1075,10 @@ install_cni() {
     echo "    requests:"
     echo "      cpu: 100m"
     echo "      memory: 128Mi"
-  } > /etc/kubernetes/helm/cilium/values.yaml
+  } > /etc/kubernetes/thirdparty/cilium/values.yaml
   ## Download images for helm chart
   local cilium_images
-  cilium_images="$( { helm template cilium oci://quay.io/cilium/charts/cilium --values /etc/kubernetes/helm/cilium/values.yaml --set prometheus.serviceMonitor.trustCRDsExist=true --version 1.19.1 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep -oE '(quay.*)' | tr -d '"' | sort -u )"
+  cilium_images="$( { helm template cilium oci://quay.io/cilium/charts/cilium --values /etc/kubernetes/thirdparty/cilium/values.yaml --set prometheus.serviceMonitor.trustCRDsExist=true --version 1.19.1 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep -oE '(quay.*)' | tr -d '"' | sort -u )"
   for image in $cilium_images; do
     nerdctl pull -q "$image"
   done
@@ -1097,24 +1097,26 @@ install_cni() {
   rm cilium*
 }
 
+# Install Prometheus custom resource definition (used for other helm charts)
 prometheus_crd()
 {
   local PROMETHEUS_OPERATOR_VERSION="0.89.0"
 
-  mkdir -p /etc/kubernetes/yaml-resources/prometheus/
-  curl -fsSL "https://github.com/prometheus-operator/prometheus-operator/releases/download/v$PROMETHEUS_OPERATOR_VERSION/bundle.yaml" -o /etc/kubernetes/yaml-resources/prometheus/prometheus.yaml
+  mkdir -p /etc/kubernetes/thirdparty/prometheus
+  curl -fsSL "https://github.com/prometheus-operator/prometheus-operator/releases/download/v$PROMETHEUS_OPERATOR_VERSION/bundle.yaml" -o /etc/kubernetes/thirdparty/prometheus/prometheus.yaml
 
   local prometheus_images
-  prometheus_images="$(grep -oE '(quay.*)' /etc/kubernetes/yaml-resources/prometheus/prometheus.yaml)"
+  prometheus_images="$(grep -oE '(quay.*)' /etc/kubernetes/thirdparty/prometheus/prometheus.yaml)"
 
   for image in $prometheus_images; do
     nerdctl pull -q "$image"
   done
 }
 
+# Install GatewayAPI custom resource definition (used for Cilium CNI)
 gatewayapi_crd() {
   local GATEWAYAPI_VERSION="1.4.1"
-  local GATEWAYAPI_MANIFEST_LOCATION="/etc/kubernetes/yaml-resources/gatewayapi/"
+  local GATEWAYAPI_MANIFEST_LOCATION="/etc/kubernetes/thirdparty/gatewayapi"
 
   mkdir -p "$GATEWAYAPI_MANIFEST_LOCATION"
 
