@@ -1127,6 +1127,181 @@ gatewayapi_crd() {
   curl -fsSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v$GATEWAYAPI_VERSION/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml" -o "$GATEWAYAPI_MANIFEST_LOCATION/gateway.networking.k8s.io_tlsroutes.yaml"
 }
 
+# Install Proxmox CSI plugin
+csi() {
+  local CSI_CONFIG_LOCATION_DIR
+  CSI_CONFIG_LOCATION_DIR="/etc/kubernetes/thirdparty/proxmox-csi-plugin"
+
+  mkdir -p "$CSI_CONFIG_LOCATION_DIR"
+
+  # Setup client config file
+  {
+    echo 'clusters:'
+    echo '  - url: https://172.16.2.10:8006/api2/json'
+    echo '    insecure: true'
+    echo '    token_id: ${CSI_PROXMOX_TOKEN_ID}'
+    echo '    token_secret: ${CSI_PROXMOX_TOKEN_SECRET}'
+    echo '    region: MyCluster'
+  } > "$CSI_CONFIG_LOCATION_DIR/config.yaml"
+
+  # Setup values.yaml for helm chart
+  {
+    echo "replicaCount: 3"
+    echo
+    echo "# -- Create namespace."
+    echo "# Very useful when using helm template."
+    echo "createNamespace: true"
+    echo
+    echo "# -- Controller pods priorityClassName."
+    echo "priorityClassName: system-cluster-critical"
+    echo
+    echo "# -- Pods Service Account."
+    echo "# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/"
+    echo "serviceAccount:"
+    echo "  # Specifies whether a service account should be created"
+    echo "  create: true"
+    echo
+    echo "# -- CSI Driver provisioner name."
+    echo "# Currently, cannot be customized."
+    echo "provisionerName: csi.proxmox.sinextra.dev"
+    echo
+    echo "# -- Cluster name."
+    echo "# Currently, cannot be customized."
+    echo "clusterID: kubernetes"
+    echo
+    echo "# -- Log verbosity level. See https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/logging.md"
+    echo "# for description of individual verbosity levels."
+    echo "logVerbosityLevel: 5"
+    echo
+    echo "# -- Connection timeout between sidecars."
+    echo "timeout: 3m"
+    echo
+    echo "options:"
+    echo "  # -- Enable or disable capacity feature."
+    echo "  # ref: https://github.com/kubernetes-csi/external-provisioner"
+    echo "  enableCapacity: true"
+    echo
+    echo "# -- Proxmox cluster config stored in secrets."
+    echo "existingConfigSecret: proxmox-csi-plugin"
+    echo "# -- Proxmox cluster config stored in secrets key."
+    echo "existingConfigSecretKey: config.yaml"
+    echo
+    echo "# -- Storage class definition."
+    echo "storageClass:"
+    echo "  - name: proxmox-data"
+    echo "    storage: data"
+    echo "    reclaimPolicy: Delete"
+    echo "    fstype: ext4"
+    echo
+    echo "    # https://pve.proxmox.com/wiki/Performance_Tweaks"
+    echo "    cache: directsync"
+    echo "    ssd: true"
+    echo
+    echo "    mountOptions:"
+    echo "      - discard"
+    echo
+    echo "controller:"
+    echo "  # -- Annotations for controller pod."
+    echo "  # ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/"
+    echo "  podAnnotations:"
+    echo "    prometheus.io/scrape: "true""
+    echo "    prometheus.io/port: "8080""
+    echo
+    echo "  plugin:"
+    echo "    resources:"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 16Mi"
+    echo "  attacher:"
+    echo "    # -- Attacher arguments."
+    echo "    # example: --default-fstype=ext4"
+    echo "    args:"
+    echo "      - --default-fstype=ext4"
+    echo "    # -- Attacher resource requests and limits."
+    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "    resources:"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 16Mi"
+    echo "  provisioner:"
+    echo "    # -- Provisioner arguments."
+    echo "    # example: --feature-gates=VolumeAttributesClass=true"
+    echo "    args:"
+    echo "      - --default-fstype=ext4"
+    echo "    # -- Provisioner resource requests and limits."
+    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "    resources:"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 16Mi"
+    echo "  resizer:"
+    echo "    # -- Resizer resource requests and limits."
+    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "    resources:"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 16Mi"
+    echo "  snapshotter:"
+    echo "    enabled: true"
+    echo "    # -- Snapshotter resource requests and limits."
+    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "    resources:"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 16Mi"
+    echo
+    echo "node:"
+    echo "  plugin:"
+    echo "    # -- Node CSI Driver resource requests and limits."
+    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "    resources:"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 16Mi"
+    echo "  driverRegistrar:"
+    echo "    # -- Node registrar resource requests and limits."
+    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "    resources:"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 16Mi"
+    echo
+    echo "livenessprobe:"
+    echo "  # -- Liveness probe resource requests and limits."
+    echo "  # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "  resources:"
+    echo "    requests:"
+    echo "      cpu: 10m"
+    echo "      memory: 16Mi"
+    echo
+    echo "# -- Prometheus metrics"
+    echo "metrics:"
+    echo "  # -- Enable Prometheus metrics."
+    echo "  enabled: true"
+    echo "  # -- Prometheus metrics port."
+    echo "  port: 8080"
+    echo
+    echo "  type: annotation"
+    echo
+    echo "# -- Node labels for controller assignment."
+    echo "# ref: https://kubernetes.io/docs/user-guide/node-selection/"
+    echo "nodeSelector:"
+    echo "  node-role.kubernetes.io/control-plane: """
+    echo
+    echo "# -- Tolerations for controller assignment."
+    echo "# ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/"
+    echo "tolerations:"
+    echo "  - key: node-role.kubernetes.io/control-plane"
+    echo "    effect: NoSchedule"
+  } > "$CSI_CONFIG_LOCATION_DIR/values.yaml"
+
+  local images
+  images="$( { helm template proxmox-csi oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin --values $CSI_CONFIG_LOCATION_DIR/values.yaml --version 0.5.5 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image:' | sed 's/.*image: //g' |  tr -d '"' | sort -u )"
+  for image in $cilium_images; do
+    nerdctl pull -q "$image"
+  done
+}
+
 main() {
   # Harden filesystems
   restrict_unused_filesystems
@@ -1170,6 +1345,7 @@ main() {
   install_cni
   prometheus_crd
   gatewayapi_crd
+  csi
 }
 
 main
