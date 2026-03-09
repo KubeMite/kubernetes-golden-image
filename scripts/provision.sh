@@ -1150,7 +1150,7 @@ csi() {
     echo
     echo "# -- Create namespace."
     echo "# Very useful when using helm template."
-    echo "createNamespace: true"
+    echo "createNamespace: false"
     echo
     echo "# -- Controller pods priorityClassName."
     echo "priorityClassName: system-cluster-critical"
