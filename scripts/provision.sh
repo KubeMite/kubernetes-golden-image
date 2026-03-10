@@ -1142,7 +1142,9 @@ csi() {
     echo 'clusters:'
     echo '  - url: https://172.16.2.10:8006/api2/json'
     echo '    insecure: true'
+    # shellcheck disable=SC2016
     echo '    token_id: ${CSI_PROXMOX_TOKEN_ID}'
+    # shellcheck disable=SC2016
     echo '    token_secret: ${CSI_PROXMOX_TOKEN_SECRET}'
     echo '    region: MyCluster'
   } > "$CSI_CONFIG_LOCATION_DIR/config.yaml"
@@ -1207,8 +1209,8 @@ csi() {
     echo "  # -- Annotations for controller pod."
     echo "  # ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/"
     echo "  podAnnotations:"
-    echo "    prometheus.io/scrape: "true""
-    echo "    prometheus.io/port: "8080""
+    echo "    prometheus.io/scrape: true"
+    echo "    prometheus.io/port: 8080"
     echo
     echo "  plugin:"
     echo "    resources:"
@@ -1314,10 +1316,11 @@ csi() {
       echo "Could not verify image ghcr.io/sergelogvinov/$GHCR_IMAGE:$CHART_APPVERSION"
       exit 1
     fi
+  done
 
   local images
   images="$( { helm template proxmox-csi oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin --values $CSI_CONFIG_LOCATION_DIR/values.yaml --version "$PROXMOX_CSI_PLUGIN_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image:' | sed 's/.*image: //g' |  tr -d '"' | sort -u )"
-  for image in $cilium_images; do
+  for image in $images; do
     nerdctl pull -q "$image"
   done
 }
