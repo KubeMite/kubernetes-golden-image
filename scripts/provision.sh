@@ -1189,7 +1189,7 @@ csi() {
     echo "# -- Storage class definition."
     echo "storageClass:"
     echo "  - name: proxmox-data"
-    echo "    storage: data"
+    echo "    storage: local-lvm"
     echo "    reclaimPolicy: Delete"
     echo "    fstype: ext4"
     echo
@@ -1286,7 +1286,7 @@ csi() {
     echo "# -- Node labels for controller assignment."
     echo "# ref: https://kubernetes.io/docs/user-guide/node-selection/"
     echo "nodeSelector:"
-    echo "  node-role.kubernetes.io/control-plane: """
+    echo "  node-role.kubernetes.io/control-plane: \"\""
     echo
     echo "# -- Tolerations for controller assignment."
     echo "# ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/"
