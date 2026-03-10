@@ -1129,7 +1129,10 @@ gatewayapi_crd() {
 
 # Install Proxmox CSI plugin
 csi() {
+  local PROXMOX_CSI_PLUGIN_VERSION
   local CSI_CONFIG_LOCATION_DIR
+
+  PROXMOX_CSI_PLUGIN_VERSION="0.5.5"
   CSI_CONFIG_LOCATION_DIR="/etc/kubernetes/thirdparty/proxmox-csi-plugin"
 
   mkdir -p "$CSI_CONFIG_LOCATION_DIR"
@@ -1295,8 +1298,25 @@ csi() {
     echo "    effect: NoSchedule"
   } > "$CSI_CONFIG_LOCATION_DIR/values.yaml"
 
+  if ! cosign verify "ghcr.io/sergelogvinov/charts/proxmox-csi-plugin:$PROXMOX_CSI_PLUGIN_VERSION" \
+      --certificate-identity https://github.com/sergelogvinov/proxmox-csi-plugin/.github/workflows/release-charts.yaml@refs/heads/main \
+      --certificate-oidc-issuer https://token.actions.githubusercontent.com 1>/dev/null; then
+    echo "Could not verify Proxmox-csi-plugin helm chart version $PROXMOX_CSI_PLUGIN_VERSION!"
+    exit 1
+  fi
+
+  local CHART_APPVERSION
+  CHART_APPVERSION="$( { helm show chart oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin --version $PROXMOX_CSI_PLUGIN_VERSION 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep '^appVersion:' | awk '{ print $2 }' )"
+  for GHCR_IMAGE in proxmox-csi-controller proxmox-csi-node; do
+    if ! cosign verify "ghcr.io/sergelogvinov/$GHCR_IMAGE:$CHART_APPVERSION" \
+        --certificate-identity "https://github.com/sergelogvinov/proxmox-csi-plugin/.github/workflows/release.yaml@refs/tags/$CHART_APPVERSION" \
+        --certificate-oidc-issuer https://token.actions.githubusercontent.com 1>/dev/null; then
+      echo "Could not verify image ghcr.io/sergelogvinov/$GHCR_IMAGE:$CHART_APPVERSION"
+      exit 1
+    fi
+
   local images
-  images="$( { helm template proxmox-csi oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin --values $CSI_CONFIG_LOCATION_DIR/values.yaml --version 0.5.5 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image:' | sed 's/.*image: //g' |  tr -d '"' | sort -u )"
+  images="$( { helm template proxmox-csi oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin --values $CSI_CONFIG_LOCATION_DIR/values.yaml --version "$PROXMOX_CSI_PLUGIN_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image:' | sed 's/.*image: //g' |  tr -d '"' | sort -u )"
   for image in $cilium_images; do
     nerdctl pull -q "$image"
   done
