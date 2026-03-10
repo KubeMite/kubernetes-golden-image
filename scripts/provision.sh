@@ -1188,7 +1188,7 @@ csi() {
     echo
     echo "# -- Storage class definition."
     echo "storageClass:"
-    echo "  - name: proxmox-data"
+    echo "  - name: proxmox"
     echo "    storage: local-lvm"
     echo "    reclaimPolicy: Delete"
     echo "    fstype: ext4"
