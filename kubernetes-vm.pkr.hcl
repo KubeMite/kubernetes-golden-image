@@ -155,7 +155,7 @@ build {
 
   provisioner "file" {
     source      = "./scripts/cleanup.sh"
-    destination = "/root/cleanup.sh"
+    destination = "/home/user/cleanup.sh"
   }
 
   provisioner "shell" {
