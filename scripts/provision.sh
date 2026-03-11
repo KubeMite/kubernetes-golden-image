@@ -868,7 +868,7 @@ install_cni() {
     exit 1
   fi
   ## Configure helm chart
-  mkdir -p /etc/kubernetes/helm/cilium
+  mkdir -p /etc/kubernetes/thirdparty/cilium
   {
     echo "k8sServiceHost: 172.16.3.10"
     echo "k8sServicePort: 8443"
@@ -1075,10 +1075,10 @@ install_cni() {
     echo "    requests:"
     echo "      cpu: 100m"
     echo "      memory: 128Mi"
-  } > /etc/kubernetes/helm/cilium/values.yaml
+  } > /etc/kubernetes/thirdparty/cilium/values.yaml
   ## Download images for helm chart
   local cilium_images
-  cilium_images="$( { helm template cilium oci://quay.io/cilium/charts/cilium --values /etc/kubernetes/helm/cilium/values.yaml --set prometheus.serviceMonitor.trustCRDsExist=true --version 1.19.1 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep -oE '(quay.*)' | tr -d '"' | sort -u )"
+  cilium_images="$( { helm template cilium oci://quay.io/cilium/charts/cilium --values /etc/kubernetes/thirdparty/cilium/values.yaml --set prometheus.serviceMonitor.trustCRDsExist=true --version 1.19.1 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep -oE '(quay.*)' | tr -d '"' | sort -u )"
   for image in $cilium_images; do
     nerdctl pull -q "$image"
   done
@@ -1097,24 +1097,26 @@ install_cni() {
   rm cilium*
 }
 
+# Install Prometheus custom resource definition (used for other helm charts)
 prometheus_crd()
 {
   local PROMETHEUS_OPERATOR_VERSION="0.89.0"
 
-  mkdir -p /etc/kubernetes/yaml-resources/prometheus/
-  curl -fsSL "https://github.com/prometheus-operator/prometheus-operator/releases/download/v$PROMETHEUS_OPERATOR_VERSION/bundle.yaml" -o /etc/kubernetes/yaml-resources/prometheus/prometheus.yaml
+  mkdir -p /etc/kubernetes/thirdparty/prometheus
+  curl -fsSL "https://github.com/prometheus-operator/prometheus-operator/releases/download/v$PROMETHEUS_OPERATOR_VERSION/bundle.yaml" -o /etc/kubernetes/thirdparty/prometheus/prometheus.yaml
 
   local prometheus_images
-  prometheus_images="$(grep -oE '(quay.*)' /etc/kubernetes/yaml-resources/prometheus/prometheus.yaml)"
+  prometheus_images="$(grep -oE '(quay.*)' /etc/kubernetes/thirdparty/prometheus/prometheus.yaml)"
 
   for image in $prometheus_images; do
     nerdctl pull -q "$image"
   done
 }
 
+# Install GatewayAPI custom resource definition (used for Cilium CNI)
 gatewayapi_crd() {
   local GATEWAYAPI_VERSION="1.4.1"
-  local GATEWAYAPI_MANIFEST_LOCATION="/etc/kubernetes/yaml-resources/gatewayapi/"
+  local GATEWAYAPI_MANIFEST_LOCATION="/etc/kubernetes/thirdparty/gatewayapi"
 
   mkdir -p "$GATEWAYAPI_MANIFEST_LOCATION"
 
@@ -1123,6 +1125,204 @@ gatewayapi_crd() {
   done
 
   curl -fsSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v$GATEWAYAPI_VERSION/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml" -o "$GATEWAYAPI_MANIFEST_LOCATION/gateway.networking.k8s.io_tlsroutes.yaml"
+}
+
+# Install Proxmox CSI plugin
+csi() {
+  local PROXMOX_CSI_PLUGIN_VERSION
+  local CSI_CONFIG_LOCATION_DIR
+
+  PROXMOX_CSI_PLUGIN_VERSION="0.5.5"
+  CSI_CONFIG_LOCATION_DIR="/etc/kubernetes/thirdparty/proxmox-csi-plugin"
+
+  mkdir -p "$CSI_CONFIG_LOCATION_DIR"
+
+  # Setup client config file
+  {
+    echo 'clusters:'
+    echo '  - url: https://172.16.2.10:8006/api2/json'
+    echo '    insecure: true'
+    # shellcheck disable=SC2016
+    echo '    token_id: ${CSI_PROXMOX_TOKEN_ID}'
+    # shellcheck disable=SC2016
+    echo '    token_secret: ${CSI_PROXMOX_TOKEN_SECRET}'
+    echo '    region: MyCluster'
+  } > "$CSI_CONFIG_LOCATION_DIR/config.yaml"
+
+  # Setup values.yaml for helm chart
+  {
+    echo "replicaCount: 3"
+    echo
+    echo "# -- Create namespace."
+    echo "# Very useful when using helm template."
+    echo "createNamespace: false"
+    echo
+    echo "# -- Controller pods priorityClassName."
+    echo "priorityClassName: system-cluster-critical"
+    echo
+    echo "# -- Pods Service Account."
+    echo "# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/"
+    echo "serviceAccount:"
+    echo "  # Specifies whether a service account should be created"
+    echo "  create: true"
+    echo
+    echo "# -- CSI Driver provisioner name."
+    echo "# Currently, cannot be customized."
+    echo "provisionerName: csi.proxmox.sinextra.dev"
+    echo
+    echo "# -- Cluster name."
+    echo "# Currently, cannot be customized."
+    echo "clusterID: kubernetes"
+    echo
+    echo "# -- Log verbosity level. See https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/logging.md"
+    echo "# for description of individual verbosity levels."
+    echo "logVerbosityLevel: 5"
+    echo
+    echo "# -- Connection timeout between sidecars."
+    echo "timeout: 3m"
+    echo
+    echo "options:"
+    echo "  # -- Enable or disable capacity feature."
+    echo "  # ref: https://github.com/kubernetes-csi/external-provisioner"
+    echo "  enableCapacity: true"
+    echo
+    echo "# -- Proxmox cluster config stored in secrets."
+    echo "existingConfigSecret: proxmox-csi-plugin"
+    echo "# -- Proxmox cluster config stored in secrets key."
+    echo "existingConfigSecretKey: config.yaml"
+    echo
+    echo "# -- Storage class definition."
+    echo "storageClass:"
+    echo "  - name: proxmox"
+    echo "    storage: local-lvm"
+    echo "    reclaimPolicy: Delete"
+    echo "    fstype: ext4"
+    echo
+    echo "    # https://pve.proxmox.com/wiki/Performance_Tweaks"
+    echo "    cache: directsync"
+    echo "    ssd: true"
+    echo
+    echo "    mountOptions:"
+    echo "      - discard"
+    echo
+    echo "controller:"
+    echo "  # -- Annotations for controller pod."
+    echo "  # ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/"
+    echo "  podAnnotations:"
+    echo "    prometheus.io/scrape: true"
+    echo "    prometheus.io/port: 8080"
+    echo
+    echo "  plugin:"
+    echo "    resources:"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 16Mi"
+    echo "  attacher:"
+    echo "    # -- Attacher arguments."
+    echo "    # example: --default-fstype=ext4"
+    echo "    args:"
+    echo "      - --default-fstype=ext4"
+    echo "    # -- Attacher resource requests and limits."
+    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "    resources:"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 16Mi"
+    echo "  provisioner:"
+    echo "    # -- Provisioner arguments."
+    echo "    # example: --feature-gates=VolumeAttributesClass=true"
+    echo "    args:"
+    echo "      - --default-fstype=ext4"
+    echo "    # -- Provisioner resource requests and limits."
+    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "    resources:"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 16Mi"
+    echo "  resizer:"
+    echo "    # -- Resizer resource requests and limits."
+    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "    resources:"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 16Mi"
+    echo "  snapshotter:"
+    echo "    enabled: true"
+    echo "    # -- Snapshotter resource requests and limits."
+    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "    resources:"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 16Mi"
+    echo
+    echo "node:"
+    echo "  plugin:"
+    echo "    # -- Node CSI Driver resource requests and limits."
+    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "    resources:"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 16Mi"
+    echo "  driverRegistrar:"
+    echo "    # -- Node registrar resource requests and limits."
+    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "    resources:"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 16Mi"
+    echo
+    echo "livenessprobe:"
+    echo "  # -- Liveness probe resource requests and limits."
+    echo "  # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "  resources:"
+    echo "    requests:"
+    echo "      cpu: 10m"
+    echo "      memory: 16Mi"
+    echo
+    echo "# -- Prometheus metrics"
+    echo "metrics:"
+    echo "  # -- Enable Prometheus metrics."
+    echo "  enabled: true"
+    echo "  # -- Prometheus metrics port."
+    echo "  port: 8080"
+    echo
+    echo "  type: annotation"
+    echo
+    echo "# -- Node labels for controller assignment."
+    echo "# ref: https://kubernetes.io/docs/user-guide/node-selection/"
+    echo "nodeSelector:"
+    echo "  node-role.kubernetes.io/control-plane: \"\""
+    echo
+    echo "# -- Tolerations for controller assignment."
+    echo "# ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/"
+    echo "tolerations:"
+    echo "  - key: node-role.kubernetes.io/control-plane"
+    echo "    effect: NoSchedule"
+  } > "$CSI_CONFIG_LOCATION_DIR/values.yaml"
+
+  if ! cosign verify "ghcr.io/sergelogvinov/charts/proxmox-csi-plugin:$PROXMOX_CSI_PLUGIN_VERSION" \
+      --certificate-identity https://github.com/sergelogvinov/proxmox-csi-plugin/.github/workflows/release-charts.yaml@refs/heads/main \
+      --certificate-oidc-issuer https://token.actions.githubusercontent.com 1>/dev/null; then
+    echo "Could not verify Proxmox-csi-plugin helm chart version $PROXMOX_CSI_PLUGIN_VERSION!"
+    exit 1
+  fi
+
+  local CHART_APPVERSION
+  CHART_APPVERSION="$( { helm show chart oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin --version $PROXMOX_CSI_PLUGIN_VERSION 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep '^appVersion:' | awk '{ print $2 }' )"
+  for GHCR_IMAGE in proxmox-csi-controller proxmox-csi-node; do
+    if ! cosign verify "ghcr.io/sergelogvinov/$GHCR_IMAGE:$CHART_APPVERSION" \
+        --certificate-identity "https://github.com/sergelogvinov/proxmox-csi-plugin/.github/workflows/release.yaml@refs/tags/$CHART_APPVERSION" \
+        --certificate-oidc-issuer https://token.actions.githubusercontent.com 1>/dev/null; then
+      echo "Could not verify image ghcr.io/sergelogvinov/$GHCR_IMAGE:$CHART_APPVERSION"
+      exit 1
+    fi
+  done
+
+  local images
+  images="$( { helm template proxmox-csi oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin --values $CSI_CONFIG_LOCATION_DIR/values.yaml --version "$PROXMOX_CSI_PLUGIN_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image:' | sed 's/.*image: //g' |  tr -d '"' | sort -u )"
+  for image in $images; do
+    nerdctl pull -q "$image"
+  done
 }
 
 main() {
@@ -1168,6 +1368,7 @@ main() {
   install_cni
   prometheus_crd
   gatewayapi_crd
+  csi
 }
 
 main
