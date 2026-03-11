@@ -153,6 +153,11 @@ source "proxmox-iso" "vm" {
 build {
   sources = ["source.proxmox-iso.vm"]
 
+  provisioner "file" {
+    source      = "./scripts/cleanup.sh"
+    destination = "/root/cleanup.sh"
+  }
+
   provisioner "shell" {
     # Run script as root
     execute_command  = "echo '${local.bws_secrets["vm-template-user-password"]}' | sudo -S {{.Vars}} bash {{.Path}}"
