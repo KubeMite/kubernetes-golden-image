@@ -1221,8 +1221,6 @@ csi() {
     echo "dm_crypt"
   } > /etc/modules-load.d/longhorn.conf
   systemctl enable iscsid
-  helm repo add longhorn https://charts.longhorn.io
-  helm repo update
 
   for image in $(curl -fsSL https://github.com/longhorn/longhorn/releases/download/v1.11.0/longhorn-images.txt); do
     nerdctl pull -q "$image"
