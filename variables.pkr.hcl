@@ -170,7 +170,7 @@ variable "storage_var_size_mb" {
   type        = number
   sensitive   = false
   description = "/var size in mb, e.g. 16384"
-  default     = 15360
+  default     = 87040
 }
 
 variable "memory_maximum" {
