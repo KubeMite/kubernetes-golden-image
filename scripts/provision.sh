@@ -9,7 +9,7 @@ export DEBIAN_FRONTEND=noninteractive
 restrict_unused_filesystems() {
   local filesystem_blacklist_file="/etc/modprobe.d/fs-blacklist.conf"
   local filesystems_to_block=(ceph cifs cramfs exfat ext firewire-core \
-  freevxfs fscache fuse gfs2 hfs hfsplus jffs2 nfs_common nfsd smbfs_common \
+  freevxfs fscache fuse gfs2 hfs hfsplus jffs2 smbfs_common \
   squashfs udf usb_storage)
 
   for fs in "${filesystems_to_block[@]}"; do
@@ -1129,198 +1129,123 @@ gatewayapi_crd() {
 
 # Install Proxmox CSI plugin
 csi() {
-  local PROXMOX_CSI_PLUGIN_VERSION
-  local CSI_CONFIG_LOCATION_DIR
+  local CSI_VERSION
+  local CSI_CONFIG_DIR
 
-  PROXMOX_CSI_PLUGIN_VERSION="0.5.5"
-  CSI_CONFIG_LOCATION_DIR="/etc/kubernetes/thirdparty/proxmox-csi-plugin"
+  CSI_VERSION="1.11.0"
+  CSI_CONFIG_DIR="/etc/kubernetes/thirdparty/csi"
 
-  mkdir -p "$CSI_CONFIG_LOCATION_DIR"
-
-  # Setup client config file
-  {
-    echo 'clusters:'
-    echo '  - url: https://172.16.2.10:8006/api2/json'
-    echo '    insecure: true'
-    # shellcheck disable=SC2016
-    echo '    token_id: ${CSI_PROXMOX_TOKEN_ID}'
-    # shellcheck disable=SC2016
-    echo '    token_secret: ${CSI_PROXMOX_TOKEN_SECRET}'
-    echo '    region: MyCluster'
-  } > "$CSI_CONFIG_LOCATION_DIR/config.yaml"
+  mkdir -p "$CSI_CONFIG_DIR"
 
   # Setup values.yaml for helm chart
   {
-    echo "replicaCount: 3"
-    echo
-    echo "# -- Create namespace."
-    echo "# Very useful when using helm template."
-    echo "createNamespace: false"
-    echo
-    echo "# -- Controller pods priorityClassName."
-    echo "priorityClassName: system-cluster-critical"
-    echo
-    echo "# -- Pods Service Account."
-    echo "# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/"
-    echo "serviceAccount:"
-    echo "  # Specifies whether a service account should be created"
-    echo "  create: true"
-    echo
-    echo "# -- CSI Driver provisioner name."
-    echo "# Currently, cannot be customized."
-    echo "provisionerName: csi.proxmox.sinextra.dev"
-    echo
-    echo "# -- Cluster name."
-    echo "# Currently, cannot be customized."
-    echo "clusterID: kubernetes"
-    echo
-    echo "# -- Log verbosity level. See https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/logging.md"
-    echo "# for description of individual verbosity levels."
-    echo "logVerbosityLevel: 5"
-    echo
-    echo "# -- Connection timeout between sidecars."
-    echo "timeout: 3m"
-    echo
-    echo "options:"
-    echo "  # -- Enable or disable capacity feature."
-    echo "  # ref: https://github.com/kubernetes-csi/external-provisioner"
-    echo "  enableCapacity: true"
-    echo
-    echo "# -- Proxmox cluster config stored in secrets."
-    echo "existingConfigSecret: proxmox-csi-plugin"
-    echo "# -- Proxmox cluster config stored in secrets key."
-    echo "existingConfigSecretKey: config.yaml"
-    echo
-    echo "# -- Storage class definition."
-    echo "storageClass:"
-    echo "  - name: proxmox"
-    echo "    storage: local-lvm"
-    echo "    reclaimPolicy: Delete"
-    echo "    fstype: ext4"
-    echo
-    echo "    # https://pve.proxmox.com/wiki/Performance_Tweaks"
-    echo "    cache: directsync"
-    echo "    ssd: true"
-    echo
-    echo "    mountOptions:"
-    echo "      - discard"
-    echo
-    echo "controller:"
-    echo "  # -- Annotations for controller pod."
-    echo "  # ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/"
-    echo "  podAnnotations:"
-    echo "    prometheus.io/scrape: true"
-    echo "    prometheus.io/port: 8080"
-    echo
-    echo "  plugin:"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  attacher:"
-    echo "    # -- Attacher arguments."
-    echo "    # example: --default-fstype=ext4"
-    echo "    args:"
-    echo "      - --default-fstype=ext4"
-    echo "    # -- Attacher resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  provisioner:"
-    echo "    # -- Provisioner arguments."
-    echo "    # example: --feature-gates=VolumeAttributesClass=true"
-    echo "    args:"
-    echo "      - --default-fstype=ext4"
-    echo "    # -- Provisioner resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  resizer:"
-    echo "    # -- Resizer resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  snapshotter:"
-    echo "    enabled: true"
-    echo "    # -- Snapshotter resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo
-    echo "node:"
-    echo "  plugin:"
-    echo "    # -- Node CSI Driver resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  driverRegistrar:"
-    echo "    # -- Node registrar resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo
-    echo "livenessprobe:"
-    echo "  # -- Liveness probe resource requests and limits."
-    echo "  # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "global:"
+    echo "  # -- Set container timezone (TZ env) for all Longhorn workloads. Leave empty to use container default."
+    echo "  timezone: "Asia/Jerusalem""
+    echo "networkPolicies:"
+    echo "  # -- Setting that allows you to enable network policies that control access to Longhorn pods."
+    echo "  enabled: true"
+    echo "  # -- Distribution that determines the policy for allowing access for an ingress. (Options: "k3s", "rke2", "rke1")"
+    echo "  type: "k3s""
+    echo "image:"
+    echo "  longhorn:"
+    echo "    manager:"
+    echo "      # -- Tag for the Longhorn Manager image."
+    echo "      tag: v1.11.0-hotfix-1"
+    echo "    instanceManager:"
+    echo "      # -- Tag for the Longhorn Instance Manager image."
+    echo "      tag: v1.11.0-hotfix-1"
+    echo "service:"
+    echo "  ui:"
+    echo "    # -- Service type for Longhorn UI. (Options: "ClusterIP", "NodePort", "LoadBalancer", "Rancher-Proxy")"
+    echo "    type: LoadBalancer"
+    echo "  manager:"
+    echo "    # -- Service type for Longhorn Manager."
+    echo "    type: LoadBalancer"
+    echo "persistence:"
+    echo "  # -- VolumeBindingMode controls when volume binding and dynamic provisioning should occur. (Options: "Immediate", "WaitForFirstConsumer") (Defaults to "Immediate")"
+    echo "  volumeBindingMode: "WaitForFirstConsumer""
+    echo "  # -- Setting that allows you to enable live migration of a Longhorn volume from one node to another."
+    echo "  migratable: true"
+    echo "  # -- Setting that disables the revision counter and thereby prevents Longhorn from tracking all write operations to a volume. When salvaging a volume, Longhorn uses properties of the volume-head-xxx.img file (the last file size and the last time the file was modified) to select the replica to be used for volume recovery."
+    echo "  disableRevisionCounter: "false""
+    echo "  # -- Setting that allows you to enable automatic snapshot removal during filesystem trim for a Longhorn StorageClass. (Options: "ignored", "enabled", "disabled")"
+    echo "  unmapMarkSnapChainRemoved: enabled"
+    echo "preUpgradeChecker:"
+    echo "  # -- Setting that allows Longhorn to perform upgrade version checks after starting the Longhorn Manager DaemonSet Pods. Disabling this setting also disables `preUpgradeChecker.jobEnabled`. Longhorn recommends keeping this setting enabled."
+    echo "  upgradeVersionCheck: false"
+    echo "defaultSettings:"
+    echo "  # -- Setting that automatically rebalances replicas when an available node is discovered."
+    echo "  replicaAutoBalance: least-effort"
+    echo "  # -- Resource limits for system-managed CSI components."
+    echo "  # This setting allows you to configure CPU and memory requests/limits for CSI attacher, provisioner, resizer, snapshotter, and plugin components."
+    echo "  # Supported components: csi-attacher, csi-provisioner, csi-resizer, csi-snapshotter, longhorn-csi-plugin, node-driver-registrar, longhorn-liveness-probe."
+    echo "  # Notice that changing resource limits will cause CSI components to restart, which may temporarily affect volume provisioning and attach/detach operations until the components are ready. The value should be a JSON object with component names as keys and ResourceRequirements as values."
+    echo "  systemManagedCSIComponentsResourceLimits: >"
+    echo "    {"
+    echo "      "csi-attacher": {"
+    echo "        "requests": {"cpu": "100m", "memory": "128Mi"},"
+    echo "        "limits": {"cpu": "200m", "memory": "256Mi"}"
+    echo "      },"
+    echo "      "csi-provisioner": {"
+    echo "        "requests": {"cpu": "100m", "memory": "128Mi"},"
+    echo "        "limits": {"cpu": "200m", "memory": "256Mi"}"
+    echo "      },"
+    echo "      "csi-resizer": {"
+    echo "        "requests": {"cpu": "100m", "memory": "128Mi"},"
+    echo "        "limits": {"cpu": "200m", "memory": "256Mi"}"
+    echo "      },"
+    echo "      "csi-snapshotter": {"
+    echo "        "requests": {"cpu": "100m", "memory": "128Mi"},"
+    echo "        "limits": {"cpu": "200m", "memory": "256Mi"}"
+    echo "      },"
+    echo "      "longhorn-csi-plugin": {"
+    echo "        "requests": {"cpu": "100m", "memory": "128Mi"},"
+    echo "        "limits": {"cpu": "200m", "memory": "256Mi"}"
+    echo "      },"
+    echo "      "node-driver-registrar": {"
+    echo "        "requests": {"cpu": "50m", "memory": "64Mi"},"
+    echo "        "limits": {"cpu": "100m", "memory": "128Mi"}"
+    echo "      },"
+    echo "      "longhorn-liveness-probe": {"
+    echo "        "requests": {"cpu": "50m", "memory": "64Mi"},"
+    echo "        "limits": {"cpu": "100m", "memory": "128Mi"}"
+    echo "      }"
+    echo "    }"
+    echo "  # -- Setting that allows scheduling on disks with existing healthy replicas of the same volume. This setting is enabled by default."
+    echo "  replicaDiskSoftAntiAffinity: false"
+    echo "  # -- Setting that allows disabling of snapshot hashing after snapshot creation to minimize impact on system performance."
+    echo "  snapshotDataIntegrityImmediateCheckAfterSnapshotCreation: false"
+    echo "  # -- Setting that allows Longhorn to periodically collect anonymous usage data for product improvement purposes. Longhorn sends collected data to the [Upgrade Responder](https://github.com/longhorn/upgrade-responder) server, which is the data source of the Longhorn Public Metrics Dashboard (https://metrics.longhorn.io). The Upgrade Responder server does not store data that can be used to identify clients, including IP addresses."
+    echo "  allowCollectingLonghornUsageMetrics: false"
+    echo "  # -- Setting that automatically cleans up the snapshot when the backup is deleted."
+    echo "  autoCleanupSnapshotWhenDeleteBackup: true"
+    echo "  # -- Setting that automatically cleans up the snapshot after the on-demand backup is completed."
+    echo "  autoCleanupSnapshotAfterOnDemandBackupCompleted: true"
+    echo "  # -- Controls whether Longhorn monitors and records health information for node disks. When disabled, disk health checks and status updates are skipped."
+    echo "  nodeDiskHealthMonitoring: true"
+    echo "longhornManager:"
+    echo "  # -- Resource requests and limits for Longhorn Manager pods."
     echo "  resources:"
     echo "    requests:"
-    echo "      cpu: 10m"
-    echo "      memory: 16Mi"
-    echo
-    echo "# -- Prometheus metrics"
+    echo "      cpu: 100m"
+    echo "      memory: 128Mi"
+    echo "    limits:"
+    echo "      cpu: 200m"
+    echo "      memory: 256Mi"
+    echo "enablePSP: true"
     echo "metrics:"
-    echo "  # -- Enable Prometheus metrics."
-    echo "  enabled: true"
-    echo "  # -- Prometheus metrics port."
-    echo "  port: 8080"
-    echo
-    echo "  type: annotation"
-    echo
-    echo "# -- Node labels for controller assignment."
-    echo "# ref: https://kubernetes.io/docs/user-guide/node-selection/"
-    echo "nodeSelector:"
-    echo "  node-role.kubernetes.io/control-plane: \"\""
-    echo
-    echo "# -- Tolerations for controller assignment."
-    echo "# ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/"
-    echo "tolerations:"
-    echo "  - key: node-role.kubernetes.io/control-plane"
-    echo "    effect: NoSchedule"
-  } > "$CSI_CONFIG_LOCATION_DIR/values.yaml"
+    echo "  serviceMonitor:"
+    echo "    # -- Setting that allows the creation of a Prometheus ServiceMonitor resource for Longhorn Manager components."
+    echo "    enabled: true"
+  } > "$CSI_CONFIG_DIR/values.yaml"
 
-  if ! cosign verify "ghcr.io/sergelogvinov/charts/proxmox-csi-plugin:$PROXMOX_CSI_PLUGIN_VERSION" \
-      --certificate-identity https://github.com/sergelogvinov/proxmox-csi-plugin/.github/workflows/release-charts.yaml@refs/heads/main \
-      --certificate-oidc-issuer https://token.actions.githubusercontent.com 1>/dev/null; then
-    echo "Could not verify Proxmox-csi-plugin helm chart version $PROXMOX_CSI_PLUGIN_VERSION!"
-    exit 1
-  fi
+  # Prerequisites
+  systemctl enable iscsid
+  helm repo add longhorn https://charts.longhorn.io
+  helm repo update
 
-  local CHART_APPVERSION
-  CHART_APPVERSION="$( { helm show chart oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin --version $PROXMOX_CSI_PLUGIN_VERSION 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep '^appVersion:' | awk '{ print $2 }' )"
-  for GHCR_IMAGE in proxmox-csi-controller proxmox-csi-node; do
-    if ! cosign verify "ghcr.io/sergelogvinov/$GHCR_IMAGE:$CHART_APPVERSION" \
-        --certificate-identity "https://github.com/sergelogvinov/proxmox-csi-plugin/.github/workflows/release.yaml@refs/tags/$CHART_APPVERSION" \
-        --certificate-oidc-issuer https://token.actions.githubusercontent.com 1>/dev/null; then
-      echo "Could not verify image ghcr.io/sergelogvinov/$GHCR_IMAGE:$CHART_APPVERSION"
-      exit 1
-    fi
-  done
-
-  local images
-  images="$( { helm template proxmox-csi oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin --values $CSI_CONFIG_LOCATION_DIR/values.yaml --version "$PROXMOX_CSI_PLUGIN_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image:' | sed 's/.*image: //g' |  tr -d '"' | sort -u )"
-  for image in $images; do
+  for image in $(curl -fsSL https://github.com/longhorn/longhorn/releases/download/v1.11.0/longhorn-images.txt); do
     nerdctl pull -q "$image"
   done
 }
