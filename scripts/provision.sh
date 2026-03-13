@@ -1135,7 +1135,7 @@ csi() {
   local ROOK_CEPH_CLUSTER_CSI_CONFIG_DIR
 
   ROOK_CEPH_CSI_VERSION="v1.19.2"
-  ROOK_CEPH_CLUSTER_CSI_VERSION=""
+  ROOK_CEPH_CLUSTER_CSI_VERSION="v1.19.2"
   ROOK_CEPH_CSI_CONFIG_DIR="/etc/kubernetes/thirdparty/csi/rook-ceph"
   ROOK_CEPH_CLUSTER_CSI_CONFIG_DIR="/etc/kubernetes/thirdparty/csi/rook-ceph-cluster"
 
@@ -1185,6 +1185,14 @@ csi() {
     echo "# @default -- See [below](#ceph-cluster-spec)"
     echo "cephClusterSpec:"
     echo
+    echo "  healthCheck:"
+    echo "    daemonHealth:"
+    echo "      osd:"
+    echo "        disabled: false"
+    echo "        interval: ~"
+    echo "      status:"
+    echo "        disabled: false"
+    echo "        interval: ~"
     echo "  # Whether or not requires PGs are clean before an OSD upgrade. If set to true OSD upgrade process won't start until PGs are healthy."
     echo "  # This configuration will be ignored if skipUpgradeChecks is true."
     echo "  # Default is false."
@@ -1221,10 +1229,29 @@ csi() {
     echo "  resources:"
     echo "    osd:"
     echo "      limits:"
-    echo "        memory: "1Gi
+    echo "        memory: "512Mi
     echo "      requests:"
-    echo "        cpu: "500m
-    echo "        memory: "500Mi
+    echo "        memory: "256Mi
+    echo "    mgr:"
+    echo "      limits:"
+    echo "        memory: "512Mi""
+    echo "      requests:"
+    echo "        memory: "256Mi""
+    echo "    mon:"
+    echo "      limits:"
+    echo "        memory: "512Mi""
+    echo "      requests:"
+    echo "        memory: "256Mi""
+    echo "    logcollector:"
+    echo "      limits:"
+    echo "        memory: "200Mi""
+    echo "      requests:"
+    echo "        memory: "100Mi""
+    echo "    cleanup:"
+    echo "      limits:"
+    echo "        memory: "200Gi""
+    echo "      requests:"
+    echo "        memory: "100Mi""
     echo
     echo "  # The option to automatically remove OSDs that are out and are safe to destroy."
     echo "  removeOSDsIfOutAndSafeToRemove: true"
@@ -1249,13 +1276,23 @@ csi() {
     echo "  - name: ceph-filesystem"
     echo "    # see https://github.com/rook/rook/blob/master/Documentation/CRDs/Shared-Filesystem/ceph-filesystem-crd.md#filesystem-settings for available configuration"
     echo "    spec:"
+    echo "      metadataPool:"
+    echo "        replicated:"
+    echo "          size: 3"
+    echo "      dataPools:"
+    echo "        - failureDomain: host"
+    echo "          replicated:"
+    echo "            size: 3"
     echo "      metadataServer:"
+    echo "        activeCount: 1"
+    echo "        activeStandby: true"
     echo "        resources:"
     echo "          limits:"
     echo "            memory: "1Gi
     echo "          requests:"
     echo "            cpu: "5000m
     echo "            memory: "500Mi
+    echo "        priorityClassName: system-cluster-critical"
     echo "    storageClass:"
     echo "      enabled: true"
     echo "      isDefault: false"
@@ -1270,10 +1307,9 @@ csi() {
     echo "      gateway:"
     echo "        resources:"
     echo "          limits:"
-    echo "            memory: "1Gi
+    echo "            memory: "512Gi
     echo "          requests:"
-    echo "            cpu: "1000m
-    echo "            memory: "500Mi
+    echo "            memory: "256Mi
     echo "    storageClass:"
     echo "      enabled: true"
     echo "      name: ceph-bucket"
@@ -1283,7 +1319,7 @@ csi() {
 
   local images
 
-  images=$(helm install rook-ceph rook-release/rook-ceph --version "$CSI_VERSION" --values "$ROOK_CEPH_CSI_CONFIG_DIR/values.yaml" --dry-run=client | \
+  images=$(helm install rook-ceph rook-release/rook-ceph --version "$ROOK_CEPH_CSI_VERSION" --values "$ROOK_CEPH_CSI_CONFIG_DIR/values.yaml" --dry-run=client | \
     grep -E 'quay\.io|registry\.k8s\.io|docker\.io|docker' | \
     sed -E 's/.*((quay\.io|registry\.k8s\.io|docker\.io|docker\.com)\/[^ "]+).*/\1/' | \
     grep -v 'tag' | tr -d '"' | sort -u)
@@ -1291,7 +1327,7 @@ csi() {
     nerdctl pull -q "$image"
   done
 
-  images=$(helm install rook-ceph rook-release/rook-ceph-cluster --version "$CSI_VERSION" --values "$ROOK_CEPH_CLUSTER_CSI_CONFIG_DIR/values.yaml" --dry-run=client | \
+  images=$(helm install rook-ceph-cluster rook-release/rook-ceph-cluster --version "$ROOK_CEPH_CLUSTER_CSI_VERSION" --values "$ROOK_CEPH_CLUSTER_CSI_CONFIG_DIR/values.yaml" --dry-run=client | \
     grep quay | awk '{print $2}' | tr -d '"' | sort -u)
   for image in $images; do
     nerdctl pull -q "$image"
