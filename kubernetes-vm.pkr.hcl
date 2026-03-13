@@ -184,7 +184,7 @@ build {
       "VM_ID=$(jq -r '.builds[-1].artifact_id' output/manifest.json)",
       "curl -sS -k -X POST \"$PVE_URL/nodes/$NODE/qemu/$VM_ID/config\" \\",
       "     -H \"Authorization: PVEAPIToken=$PVE_TOKEN\" \\",
-      "     --data \"memory=$MEMORY_MAXIMUM&balloon=$MEMORY_MINIMUM\" \\",
+      # "     --data \"memory=$MEMORY_MAXIMUM&balloon=$MEMORY_MINIMUM\" \\",
       "     --data \"agent=1\""
     ]
   }
