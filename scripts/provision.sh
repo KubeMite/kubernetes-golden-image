@@ -1127,199 +1127,172 @@ gatewayapi_crd() {
   curl -fsSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v$GATEWAYAPI_VERSION/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml" -o "$GATEWAYAPI_MANIFEST_LOCATION/gateway.networking.k8s.io_tlsroutes.yaml"
 }
 
-# Install Proxmox CSI plugin
+# Install Rook+Ceph CSI
 csi() {
-  local PROXMOX_CSI_PLUGIN_VERSION
-  local CSI_CONFIG_LOCATION_DIR
+  local ROOK_CEPH_CSI_VERSION
+  local ROOK_CEPH_CSI_CONFIG_DIR
+  local ROOK_CEPH_CLUSTER_CSI_VERSION
+  local ROOK_CEPH_CLUSTER_CSI_CONFIG_DIR
 
-  PROXMOX_CSI_PLUGIN_VERSION="0.5.5"
-  CSI_CONFIG_LOCATION_DIR="/etc/kubernetes/thirdparty/proxmox-csi-plugin"
+  ROOK_CEPH_CSI_VERSION="v1.19.2"
+  ROOK_CEPH_CLUSTER_CSI_VERSION=""
+  ROOK_CEPH_CSI_CONFIG_DIR="/etc/kubernetes/thirdparty/csi/rook-ceph"
+  ROOK_CEPH_CLUSTER_CSI_CONFIG_DIR="/etc/kubernetes/thirdparty/csi/rook-ceph-cluster"
 
-  mkdir -p "$CSI_CONFIG_LOCATION_DIR"
+  mkdir -p "$ROOK_CEPH_CSI_CONFIG_DIR"
+  mkdir -p "$ROOK_CEPH_CLUSTER_CSI_CONFIG_DIR"
 
-  # Setup client config file
+  # Setup values.yaml for rook-ceph helm chart
   {
-    echo 'clusters:'
-    echo '  - url: https://172.16.2.10:8006/api2/json'
-    echo '    insecure: true'
-    # shellcheck disable=SC2016
-    echo '    token_id: ${CSI_PROXMOX_TOKEN_ID}'
-    # shellcheck disable=SC2016
-    echo '    token_secret: ${CSI_PROXMOX_TOKEN_SECRET}'
-    echo '    region: MyCluster'
-  } > "$CSI_CONFIG_LOCATION_DIR/config.yaml"
-
-  # Setup values.yaml for helm chart
-  {
-    echo "replicaCount: 3"
+    echo "csi:"
     echo
-    echo "# -- Create namespace."
-    echo "# Very useful when using helm template."
-    echo "createNamespace: false"
+    echo "  # -- Enable Ceph CSI Liveness sidecar deployment"
+    echo "  enableLiveness: true"
     echo
-    echo "# -- Controller pods priorityClassName."
-    echo "priorityClassName: system-cluster-critical"
-    echo
-    echo "# -- Pods Service Account."
-    echo "# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/"
-    echo "serviceAccount:"
-    echo "  # Specifies whether a service account should be created"
-    echo "  create: true"
-    echo
-    echo "# -- CSI Driver provisioner name."
-    echo "# Currently, cannot be customized."
-    echo "provisionerName: csi.proxmox.sinextra.dev"
-    echo
-    echo "# -- Cluster name."
-    echo "# Currently, cannot be customized."
-    echo "clusterID: kubernetes"
-    echo
-    echo "# -- Log verbosity level. See https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/logging.md"
-    echo "# for description of individual verbosity levels."
-    echo "logVerbosityLevel: 5"
-    echo
-    echo "# -- Connection timeout between sidecars."
-    echo "timeout: 3m"
-    echo
-    echo "options:"
-    echo "  # -- Enable or disable capacity feature."
-    echo "  # ref: https://github.com/kubernetes-csi/external-provisioner"
-    echo "  enableCapacity: true"
-    echo
-    echo "# -- Proxmox cluster config stored in secrets."
-    echo "existingConfigSecret: proxmox-csi-plugin"
-    echo "# -- Proxmox cluster config stored in secrets key."
-    echo "existingConfigSecretKey: config.yaml"
-    echo
-    echo "# -- Storage class definition."
-    echo "storageClass:"
-    echo "  - name: proxmox"
-    echo "    storage: local-lvm"
-    echo "    reclaimPolicy: Delete"
-    echo "    fstype: ext4"
-    echo
-    echo "    # https://pve.proxmox.com/wiki/Performance_Tweaks"
-    echo "    cache: directsync"
-    echo "    ssd: true"
-    echo
-    echo "    mountOptions:"
-    echo "      - discard"
-    echo
-    echo "controller:"
-    echo "  # -- Annotations for controller pod."
-    echo "  # ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/"
-    echo "  podAnnotations:"
-    echo "    prometheus.io/scrape: true"
-    echo "    prometheus.io/port: 8080"
-    echo
-    echo "  plugin:"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  attacher:"
-    echo "    # -- Attacher arguments."
-    echo "    # example: --default-fstype=ext4"
-    echo "    args:"
-    echo "      - --default-fstype=ext4"
-    echo "    # -- Attacher resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  provisioner:"
-    echo "    # -- Provisioner arguments."
-    echo "    # example: --feature-gates=VolumeAttributesClass=true"
-    echo "    args:"
-    echo "      - --default-fstype=ext4"
-    echo "    # -- Provisioner resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  resizer:"
-    echo "    # -- Resizer resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  snapshotter:"
+    echo "  serviceMonitor:"
+    echo "    # -- Enable ServiceMonitor for Ceph CSI drivers"
     echo "    enabled: true"
-    echo "    # -- Snapshotter resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
     echo
-    echo "node:"
-    echo "  plugin:"
-    echo "    # -- Node CSI Driver resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  driverRegistrar:"
-    echo "    # -- Node registrar resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
+    echo "  csiAddons:"
+    echo "    # -- Enable CSIAddons"
+    echo "    enabled: true"
     echo
-    echo "livenessprobe:"
-    echo "  # -- Liveness probe resource requests and limits."
-    echo "  # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "  resources:"
-    echo "    requests:"
-    echo "      cpu: 10m"
-    echo "      memory: 16Mi"
+    echo "# -- Enable discovery daemon"
+    echo "enableDiscoveryDaemon: true"
     echo
-    echo "# -- Prometheus metrics"
-    echo "metrics:"
-    echo "  # -- Enable Prometheus metrics."
+    echo "monitoring:"
+    echo "  # -- Enable monitoring. Requires Prometheus to be pre-installed."
+    echo "  # Enabling will also create RBAC rules to allow Operator to create ServiceMonitors"
     echo "  enabled: true"
-    echo "  # -- Prometheus metrics port."
-    echo "  port: 8080"
-    echo
-    echo "  type: annotation"
-    echo
-    echo "# -- Node labels for controller assignment."
-    echo "# ref: https://kubernetes.io/docs/user-guide/node-selection/"
-    echo "nodeSelector:"
-    echo "  node-role.kubernetes.io/control-plane: \"\""
-    echo
-    echo "# -- Tolerations for controller assignment."
-    echo "# ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/"
-    echo "tolerations:"
-    echo "  - key: node-role.kubernetes.io/control-plane"
-    echo "    effect: NoSchedule"
-  } > "$CSI_CONFIG_LOCATION_DIR/values.yaml"
+  } > "$ROOK_CEPH_CSI_CONFIG_DIR/values.yaml"
 
-  if ! cosign verify "ghcr.io/sergelogvinov/charts/proxmox-csi-plugin:$PROXMOX_CSI_PLUGIN_VERSION" \
-      --certificate-identity https://github.com/sergelogvinov/proxmox-csi-plugin/.github/workflows/release-charts.yaml@refs/heads/main \
-      --certificate-oidc-issuer https://token.actions.githubusercontent.com 1>/dev/null; then
-    echo "Could not verify Proxmox-csi-plugin helm chart version $PROXMOX_CSI_PLUGIN_VERSION!"
-    exit 1
-  fi
+  # Setup values.yaml for rook-ceph-cluster helm chart
+  {
+    echo "# Installs a debugging toolbox deployment"
+    echo "toolbox:"
+    echo "  # -- Enable Ceph debugging pod deployment. See [toolbox](../Troubleshooting/ceph-toolbox.md)"
+    echo "  enabled: true"
+    echo
+    echo "monitoring:"
+    echo "  # -- Enable Prometheus integration, will also create necessary RBAC rules to allow Operator to create ServiceMonitors."
+    echo "  # Monitoring requires Prometheus to be pre-installed"
+    echo "  enabled: true"
+    echo "  # -- Whether to create the Prometheus rules for Ceph alerts"
+    echo "  createPrometheusRules: true"
+    echo
+    echo "# All values below are taken from the CephCluster CRD"
+    echo "# -- Cluster configuration."
+    echo "# @default -- See [below](#ceph-cluster-spec)"
+    echo "cephClusterSpec:"
+    echo
+    echo "  # Whether or not requires PGs are clean before an OSD upgrade. If set to true OSD upgrade process won't start until PGs are healthy."
+    echo "  # This configuration will be ignored if skipUpgradeChecks is true."
+    echo "  # Default is false."
+    echo "  upgradeOSDRequiresHealthyPGs: true"
+    echo
+    echo "  # enable the ceph dashboard for viewing cluster status"
+    echo "  dashboard:"
+    echo "    # Serve the dashboard using SSL (if using ingress to expose the dashboard and `ssl: true` you need to set"
+    echo "    # the corresponding "backend protocol" annotation(s) for your ingress controller of choice)"
+    echo "    ssl: false"
+    echo
+    echo "  # Network configuration, see: https://github.com/rook/rook/blob/master/Documentation/CRDs/Cluster/ceph-cluster-crd.md#network-configuration-settings"
+    echo "  network:"
+    echo "    connections:"
+    echo "      # Whether to encrypt the data in transit across the wire to prevent eavesdropping the data on the network."
+    echo "      # The default is false. When encryption is enabled, all communication between clients and Ceph daemons, or between Ceph daemons will be encrypted."
+    echo "      encryption:"
+    echo "        enabled: true"
+    echo "      # Whether to require communication over msgr2. If true, the msgr v1 port (6789) will be disabled"
+    echo "      # and clients will be required to connect to the Ceph cluster with the v2 port (3300)."
+    echo "      requireMsgr2: true"
+    echo
+    echo "  # enable the crash collector for ceph daemon crash collection"
+    echo "  crashCollector:"
+    echo "    disable: true"
+    echo "    daysToRetain: 5"
+    echo
+    echo "  # enable log collector, daemons will log on files and rotate"
+    echo "  logCollector:"
+    echo "    enabled: true"
+    echo "    periodicity: daily"
+    echo "    maxLogSize: 50M"
+    echo
+    echo "  resources:"
+    echo "    osd:"
+    echo "      limits:"
+    echo "        memory: "1Gi
+    echo "      requests:"
+    echo "        cpu: "500m
+    echo "        memory: "500Mi
+    echo
+    echo "  # The option to automatically remove OSDs that are out and are safe to destroy."
+    echo "  removeOSDsIfOutAndSafeToRemove: true"
+    echo
+    echo "# -- A list of CephBlockPool configurations to deploy"
+    echo "# @default -- See [below](#ceph-block-pools)"
+    echo "cephBlockPools:"
+    echo "  - name: ceph-blockpool"
+    echo "    # see https://github.com/rook/rook/blob/master/Documentation/CRDs/Block-Storage/ceph-block-pool-crd.md#spec for available configuration"
+    echo "    spec:"
+    echo "      # Enables collecting RBD per-image IO statistics by enabling dynamic OSD performance counters. Defaults to false."
+    echo "      # For reference: https://docs.ceph.com/docs/latest/mgr/prometheus/#rbd-io-statistics"
+    echo "      enableRBDStats: true"
+    echo "    storageClass:"
+    echo "      enabled: true"
+    echo "      name: ceph-block"
+    echo "      isDefault: true"
+    echo
+    echo "# -- A list of CephFileSystem configurations to deploy"
+    echo "# @default -- See [below](#ceph-file-systems)"
+    echo "cephFileSystems:"
+    echo "  - name: ceph-filesystem"
+    echo "    # see https://github.com/rook/rook/blob/master/Documentation/CRDs/Shared-Filesystem/ceph-filesystem-crd.md#filesystem-settings for available configuration"
+    echo "    spec:"
+    echo "      metadataServer:"
+    echo "        resources:"
+    echo "          limits:"
+    echo "            memory: "1Gi
+    echo "          requests:"
+    echo "            cpu: "5000m
+    echo "            memory: "500Mi
+    echo "    storageClass:"
+    echo "      enabled: true"
+    echo "      isDefault: false"
+    echo "      name: ceph-filesystem"
+    echo
+    echo "# -- A list of CephObjectStore configurations to deploy"
+    echo "# @default -- See [below](#ceph-object-stores)"
+    echo "cephObjectStores:"
+    echo "  - name: ceph-objectstore"
+    echo "    # see https://github.com/rook/rook/blob/master/Documentation/CRDs/Object-Storage/ceph-object-store-crd.md#object-store-settings for available configuration"
+    echo "    spec:"
+    echo "      gateway:"
+    echo "        resources:"
+    echo "          limits:"
+    echo "            memory: "1Gi
+    echo "          requests:"
+    echo "            cpu: "1000m
+    echo "            memory: "500Mi
+    echo "    storageClass:"
+    echo "      enabled: true"
+    echo "      name: ceph-bucket"
+  } > "$ROOK_CEPH_CLUSTER_CSI_CONFIG_DIR/values.yaml"
 
-  local CHART_APPVERSION
-  CHART_APPVERSION="$( { helm show chart oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin --version $PROXMOX_CSI_PLUGIN_VERSION 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep '^appVersion:' | awk '{ print $2 }' )"
-  for GHCR_IMAGE in proxmox-csi-controller proxmox-csi-node; do
-    if ! cosign verify "ghcr.io/sergelogvinov/$GHCR_IMAGE:$CHART_APPVERSION" \
-        --certificate-identity "https://github.com/sergelogvinov/proxmox-csi-plugin/.github/workflows/release.yaml@refs/tags/$CHART_APPVERSION" \
-        --certificate-oidc-issuer https://token.actions.githubusercontent.com 1>/dev/null; then
-      echo "Could not verify image ghcr.io/sergelogvinov/$GHCR_IMAGE:$CHART_APPVERSION"
-      exit 1
-    fi
-  done
+  helm repo add rook-release https://charts.rook.io/release
 
   local images
-  images="$( { helm template proxmox-csi oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin --values $CSI_CONFIG_LOCATION_DIR/values.yaml --version "$PROXMOX_CSI_PLUGIN_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image:' | sed 's/.*image: //g' |  tr -d '"' | sort -u )"
+
+  images=$(helm install rook-ceph rook-release/rook-ceph --version "$CSI_VERSION" --values "$ROOK_CEPH_CSI_CONFIG_DIR/values.yaml" --dry-run=client | \
+    grep -E 'quay\.io|registry\.k8s\.io|docker\.io|docker' | \
+    sed -E 's/.*((quay\.io|registry\.k8s\.io|docker\.io|docker\.com)\/[^ "]+).*/\1/' | \
+    grep -v 'tag' | tr -d '"' | sort -u)
+  for image in $images; do
+    nerdctl pull -q "$image"
+  done
+
+  images=$(helm install rook-ceph rook-release/rook-ceph-cluster --version "$CSI_VERSION" --values "$ROOK_CEPH_CLUSTER_CSI_CONFIG_DIR/values.yaml" --dry-run=client | \
+    grep quay | awk '{print $2}' | tr -d '"' | sort -u)
   for image in $images; do
     nerdctl pull -q "$image"
   done
