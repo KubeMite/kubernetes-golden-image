@@ -101,16 +101,15 @@ source "proxmox-iso" "vm" {
     format       = "raw"
     ssd          = true
   }
-  memory             = var.memory_maximum
-  ballooning_minimum = 0
-  cores              = var.cpu_cores
-  cpu_type           = "host"
-  sockets            = var.cpu_sockets
-  os                 = "l26"
-  bios               = "seabios"
-  qemu_agent         = false
-  onboot             = true
-  disable_kvm        = false
+  memory      = var.memory_mb
+  cores       = var.cpu_cores
+  cpu_type    = "host"
+  sockets     = var.cpu_sockets
+  os          = "l26"
+  bios        = "seabios"
+  qemu_agent  = false
+  onboot      = true
+  disable_kvm = false
 
   # RNG from host to VM (otherwise all VMs will have similar randomness seeds)
   rng0 {
@@ -173,18 +172,15 @@ build {
     output = "output/manifest.json"
   }
 
-  # Setting template with balooning device post-setup & qemu agent (debian install is unstable on ballooning device and qemu agent)
+  # Setting template with qemu agent (debian install is unstable on qemu agent)
   post-processor "shell-local" {
     inline = [
       "PVE_URL='${local.bws_secrets["proxmox-api-endpoint"]}/api2/json'",
       "PVE_TOKEN='${local.bws_secrets["proxmox-root-api-token-id"]}=${local.bws_secrets["proxmox-root-api-token-secret"]}'",
       "NODE='${var.proxmox_node}'",
-      "MEMORY_MAXIMUM='${var.memory_maximum}'",
-      "MEMORY_MINIMUM='${var.memory_minimum}'",
       "VM_ID=$(jq -r '.builds[-1].artifact_id' output/manifest.json)",
       "curl -sS -k -X POST \"$PVE_URL/nodes/$NODE/qemu/$VM_ID/config\" \\",
       "     -H \"Authorization: PVEAPIToken=$PVE_TOKEN\" \\",
-      # "     --data \"memory=$MEMORY_MAXIMUM&balloon=$MEMORY_MINIMUM\" \\",
       "     --data \"agent=1\""
     ]
   }
