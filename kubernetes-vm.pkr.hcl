@@ -91,6 +91,15 @@ source "proxmox-iso" "vm" {
     storage_pool = "local-lvm"
     cache_mode   = "none"
     format       = "raw"
+    ssd          = true
+  }
+  disks { # For Rook CSI
+    type         = "scsi"
+    disk_size    = var.rook_disk_size
+    storage_pool = "local-lvm"
+    cache_mode   = "none"
+    format       = "raw"
+    ssd          = true
   }
   memory             = var.memory_maximum
   ballooning_minimum = 0

@@ -128,7 +128,14 @@ variable "disk_size" {
   type        = string
   sensitive   = false
   description = "Disk size for vm, e.g. 30G"
-  default     = "100G"
+  default     = "115G"
+}
+
+variable "rook_disk_size" {
+  type        = string
+  sensitive   = false
+  description = "Disk size for rook CSI, e.g. 30G"
+  default     = "35G"
 }
 
 variable "storage_swap_size_mb" {
@@ -170,7 +177,7 @@ variable "storage_var_size_mb" {
   type        = number
   sensitive   = false
   description = "/var size in mb, e.g. 16384"
-  default     = 15360
+  default     = 30720
 }
 
 variable "memory_maximum" {
