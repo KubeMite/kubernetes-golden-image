@@ -128,7 +128,7 @@ variable "disk_size" {
   type        = string
   sensitive   = false
   description = "Disk size for vm, e.g. 30G"
-  default     = "200G"
+  default     = "150G"
 }
 
 variable "storage_swap_size_mb" {
@@ -170,7 +170,7 @@ variable "storage_var_size_mb" {
   type        = number
   sensitive   = false
   description = "/var size in mb, e.g. 16384"
-  default     = 87040
+  default     = 61440
 }
 
 variable "memory_maximum" {
