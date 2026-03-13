@@ -1192,7 +1192,7 @@ csi() {
     echo
     echo "  # enable the ceph dashboard for viewing cluster status"
     echo "  dashboard:"
-    echo "    # Serve the dashboard using SSL (if using ingress to expose the dashboard and `ssl: true` you need to set"
+    echo "    # Serve the dashboard using SSL (if using ingress to expose the dashboard and ssl: true you need to set"
     echo "    # the corresponding "backend protocol" annotation(s) for your ingress controller of choice)"
     echo "    ssl: false"
     echo
