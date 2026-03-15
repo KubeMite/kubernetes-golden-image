@@ -173,18 +173,11 @@ variable "storage_var_size_mb" {
   default     = 15360
 }
 
-variable "memory_maximum" {
+variable "memory_mb" {
   type        = number
   sensitive   = false
-  description = "In mb, vm will baloon to this size. e.g. 8192"
+  description = "VM memory in mb. e.g. 8192"
   default     = 4096
-}
-
-variable "memory_minimum" {
-  type        = number
-  sensitive   = false
-  description = "In mb, vm will be try to be in this size. e.g. 4096"
-  default     = 2048
 }
 
 variable "cpu_cores" {
