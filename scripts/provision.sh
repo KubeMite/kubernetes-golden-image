@@ -1127,200 +1127,321 @@ gatewayapi_crd() {
   curl -fsSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v$GATEWAYAPI_VERSION/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml" -o "$GATEWAYAPI_MANIFEST_LOCATION/gateway.networking.k8s.io_tlsroutes.yaml"
 }
 
-# Install Proxmox CSI plugin
+# Install Local-path-provisioner & Seaweedfs CSI plugins
 csi() {
-  local PROXMOX_CSI_PLUGIN_VERSION
-  local CSI_CONFIG_LOCATION_DIR
+  local LOCALPATH_CSI_VERSION
+  local LOCALPATH_CSI_CONFIG_DIR
+  local SEAWEEDFS_CSI_VERSION
+  local SEAWEEDFS_CSI_CONFIG_DIR
 
-  PROXMOX_CSI_PLUGIN_VERSION="0.5.5"
-  CSI_CONFIG_LOCATION_DIR="/etc/kubernetes/thirdparty/proxmox-csi-plugin"
+  LOCALPATH_CSI_VERSION="0.0.35"
+  LOCALPATH_CSI_CONFIG_DIR="/etc/kubernetes/thirdparty/localpath-csi"
+  SEAWEEDFS_CSI_VERSION="4.17.0"
+  SEAWEEDFS_CSI_CONFIG_DIR="/etc/kubernetes/thirdparty/seaweedfs-csi"
 
-  mkdir -p "$CSI_CONFIG_LOCATION_DIR"
+  mkdir -p "$LOCALPATH_CSI_CONFIG_DIR"
+  mkdir -p "$SEAWEEDFS_CSI_CONFIG_DIR"
 
-  # Setup client config file
-  {
-    echo 'clusters:'
-    echo '  - url: https://172.16.2.10:8006/api2/json'
-    echo '    insecure: true'
-    # shellcheck disable=SC2016
-    echo '    token_id: ${CSI_PROXMOX_TOKEN_ID}'
-    # shellcheck disable=SC2016
-    echo '    token_secret: ${CSI_PROXMOX_TOKEN_SECRET}'
-    echo '    region: MyCluster'
-  } > "$CSI_CONFIG_LOCATION_DIR/config.yaml"
+  helm repo add seaweedfs https://seaweedfs.github.io/seaweedfs/helm
+  helm repo update
 
-  # Setup values.yaml for helm chart
+  # Setup values.yaml for localpath helm chart
   {
     echo "replicaCount: 3"
     echo
-    echo "# -- Create namespace."
-    echo "# Very useful when using helm template."
-    echo "createNamespace: false"
+    echo "podSecurityContext:"
+    echo "  runAsNonRoot: true"
     echo
-    echo "# -- Controller pods priorityClassName."
-    echo "priorityClassName: system-cluster-critical"
+    echo "hostUsers: true"
     echo
-    echo "# -- Pods Service Account."
-    echo "# ref: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/"
-    echo "serviceAccount:"
-    echo "  # Specifies whether a service account should be created"
-    echo "  create: true"
+    echo "securityContext:"
+    echo "  allowPrivilegeEscalation: false"
+    echo "  seccompProfile:"
+    echo "    type: RuntimeDefault"
+    echo "  capabilities:"
+    echo "    drop: [\"ALL\"]"
+    echo "  runAsUser: 65534"
+    echo "  runAsGroup: 65534"
+    echo "  readOnlyRootFilesystem: true"
     echo
-    echo "# -- CSI Driver provisioner name."
-    echo "# Currently, cannot be customized."
-    echo "provisionerName: csi.proxmox.sinextra.dev"
+    echo "resources:"
+    echo "  limits:"
+    echo "    cpu: 100m"
+    echo "    memory: 128Mi"
+    echo "  requests:"
+    echo "    cpu: 100m"
+    echo "    memory: 128Mi"
     echo
-    echo "# -- Cluster name."
-    echo "# Currently, cannot be customized."
-    echo "clusterID: kubernetes"
-    echo
-    echo "# -- Log verbosity level. See https://github.com/kubernetes/community/blob/master/contributors/devel/sig-instrumentation/logging.md"
-    echo "# for description of individual verbosity levels."
-    echo "logVerbosityLevel: 5"
-    echo
-    echo "# -- Connection timeout between sidecars."
-    echo "timeout: 3m"
-    echo
-    echo "options:"
-    echo "  # -- Enable or disable capacity feature."
-    echo "  # ref: https://github.com/kubernetes-csi/external-provisioner"
-    echo "  enableCapacity: true"
-    echo
-    echo "# -- Proxmox cluster config stored in secrets."
-    echo "existingConfigSecret: proxmox-csi-plugin"
-    echo "# -- Proxmox cluster config stored in secrets key."
-    echo "existingConfigSecretKey: config.yaml"
-    echo
-    echo "# -- Storage class definition."
-    echo "storageClass:"
-    echo "  - name: proxmox"
-    echo "    storage: local-lvm"
-    echo "    reclaimPolicy: Delete"
-    echo "    fstype: ext4"
-    echo
-    echo "    # https://pve.proxmox.com/wiki/Performance_Tweaks"
-    echo "    cache: directsync"
-    echo "    ssd: true"
-    echo
-    echo "    mountOptions:"
-    echo "      - discard"
-    echo
-    echo "controller:"
-    echo "  # -- Annotations for controller pod."
-    echo "  # ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/"
-    echo "  podAnnotations:"
-    echo "    prometheus.io/scrape: true"
-    echo "    prometheus.io/port: 8080"
-    echo
-    echo "  plugin:"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  attacher:"
-    echo "    # -- Attacher arguments."
-    echo "    # example: --default-fstype=ext4"
-    echo "    args:"
-    echo "      - --default-fstype=ext4"
-    echo "    # -- Attacher resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  provisioner:"
-    echo "    # -- Provisioner arguments."
-    echo "    # example: --feature-gates=VolumeAttributesClass=true"
-    echo "    args:"
-    echo "      - --default-fstype=ext4"
-    echo "    # -- Provisioner resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  resizer:"
-    echo "    # -- Resizer resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  snapshotter:"
-    echo "    enabled: true"
-    echo "    # -- Snapshotter resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo
-    echo "node:"
-    echo "  plugin:"
-    echo "    # -- Node CSI Driver resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo "  driverRegistrar:"
-    echo "    # -- Node registrar resource requests and limits."
-    echo "    # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
-    echo "    resources:"
-    echo "      requests:"
-    echo "        cpu: 10m"
-    echo "        memory: 16Mi"
-    echo
-    echo "livenessprobe:"
-    echo "  # -- Liveness probe resource requests and limits."
-    echo "  # ref: https://kubernetes.io/docs/user-guide/compute-resources/"
+    echo "helperPod:"
     echo "  resources:"
+    echo "    limits:"
+    echo "      cpu: 100m"
+    echo "      memory: 128Mi"
     echo "    requests:"
-    echo "      cpu: 10m"
-    echo "      memory: 16Mi"
+    echo "      cpu: 100m"
+    echo "      memory: 128Mi"
     echo
-    echo "# -- Prometheus metrics"
-    echo "metrics:"
-    echo "  # -- Enable Prometheus metrics."
+    echo "# Priority class name for the pod"
+    echo "priorityClassName: system-node-critical"
+    echo
+    echo "podDisruptionBudget:"
     echo "  enabled: true"
-    echo "  # -- Prometheus metrics port."
-    echo "  port: 8080"
-    echo
-    echo "  type: annotation"
-    echo
-    echo "# -- Node labels for controller assignment."
-    echo "# ref: https://kubernetes.io/docs/user-guide/node-selection/"
-    echo "nodeSelector:"
-    echo "  node-role.kubernetes.io/control-plane: \"\""
-    echo
-    echo "# -- Tolerations for controller assignment."
-    echo "# ref: https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/"
-    echo "tolerations:"
-    echo "  - key: node-role.kubernetes.io/control-plane"
-    echo "    effect: NoSchedule"
-  } > "$CSI_CONFIG_LOCATION_DIR/values.yaml"
+    echo "  maxUnavailable: 1"
+    echo "  unhealthyPodEvictionPolicy: IfHealthyBudget"
+  } > "$LOCALPATH_CSI_CONFIG_DIR/values.yaml"
 
-  if ! cosign verify "ghcr.io/sergelogvinov/charts/proxmox-csi-plugin:$PROXMOX_CSI_PLUGIN_VERSION" \
-      --certificate-identity https://github.com/sergelogvinov/proxmox-csi-plugin/.github/workflows/release-charts.yaml@refs/heads/main \
-      --certificate-oidc-issuer https://token.actions.githubusercontent.com 1>/dev/null; then
-    echo "Could not verify Proxmox-csi-plugin helm chart version $PROXMOX_CSI_PLUGIN_VERSION!"
-    exit 1
-  fi
+  # Setup values.yaml for seaweedfs helm chart
+  {
+    echo "global:"
+    echo "  enableSecurity: true"
+    echo "  masterServer: null"
+    echo "  securityConfig:"
+    echo "    jwtSigning:"
+    echo "      volumeWrite: true"
+    echo "      volumeRead: true"
+    echo "      filerWrite: true"
+    echo "      filerRead: true"
+    echo "  monitoring:"
+    echo "    enabled: true"
+    echo "    gatewayHost: null"
+    echo "    gatewayPort: null"
+    echo "    additionalLabels: {}"
+    echo "  # if enabled will use global.replicationPlacement and override master & filer defaultReplicaPlacement config"
+    echo "  enableReplication: true"
+    echo "  #  replication type is XYZ:"
+    echo "  # X number of replica in other data centers"
+    echo "  # Y number of replica in other racks in the same data center"
+    echo "  # Z number of replica in other servers in the same rack"
+    echo "  replicationPlacement: 010"
+    echo
+    echo "master:"
+    echo "  replicas: 3"
+    echo "  volumePreallocate: true"
+    echo "  #  replication type is XYZ:"
+    echo "  # X number of replica in other data centers"
+    echo "  # Y number of replica in other racks in the same data center"
+    echo "  # Z number of replica in other servers in the same rack"
+    echo "  defaultReplication: 010"
+    echo
+    echo "  # Disable http request, only gRpc operations are allowed"
+    echo "  disableHttp: true"
+    echo
+    echo "  # Resume previous state on start master server"
+    echo "  resumeState: true"
+    echo "  # Use Hashicorp Raft"
+    echo "  raftHashicorp: true"
+    echo "  # Whether to bootstrap the Raft cluster. Only use it when use Hashicorp Raft"
+    echo "  raftBootstrap: true"
+    echo
+    echo "  data:"
+    echo "    type: persistentVolumeClaim"
+    echo "    size: 1Gi"
+    echo "    storageClass: local-path"
+    echo
+    echo "  logs:"
+    echo "    type: persistentVolumeClaim"
+    echo "    size: 200Mi"
+    echo "    storageClass: local-path-provisioner"
+    echo
+    echo "  # TODO: Set this"
+    echo "  resources: {}"
+    echo
+    echo "  # updatePartition is used to control a careful rolling update of SeaweedFS"
+    echo "  # masters."
+    echo "  updatePartition: 1"
+    echo
+    echo "  # used to assign priority to master pods"
+    echo "  # ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/"
+    echo "  priorityClassName: system-node-critical"
+    echo
+    echo "  # Configure security context for Pod"
+    echo "  podSecurityContext:"
+    echo "    enabled: true"
+    echo "    runAsUser: 1000"
+    echo "    runAsGroup: 3000"
+    echo "    fsGroup: 2000"
+    echo
+    echo "  # Configure security context for Container"
+    echo "  containerSecurityContext:"
+    echo "    enabled: true"
+    echo "    runAsUser: 2000"
+    echo "    allowPrivilegeEscalation: false"
+    echo
+    echo "  volume:"
+    echo "    replicas: 3"
+    echo "    # Choose [memory|leveldb|leveldbMedium|leveldbLarge] mode for memory~performance balance., default memory"
+    echo "    index: leveldb"
+    echo
+    echo "  # Custom command line arguments to add to the volume command"
+    echo "  extraArgs: [\"-metricsIp\", \"0.0.0.0\"]"
+    echo
+    echo "  dataDirs:"
+    echo "    - name: data"
+    echo "      type: persistentVolumeClaim"
+    echo "      size: 200Mi"
+    echo "      storageClass: local-path"
+    echo
+    echo "  # This will automatically create a job for patching Kubernetes resources if the dataDirs type is 'persistentVolumeClaim' and the size has changed."
+    echo "  resizeHook:"
+    echo "    enabled: true"
+    echo "    image: alpine/k8s:1.28.4"
+    echo
+    echo "  extraVolumeMounts: |"
+    echo "    - name: drive"
+    echo "      mountPath: /drive"
+    echo "      subPathExpr: \$(POD_NAME)"
+    echo "  extraVolumes: |"
+    echo "    - name: drive"
+    echo "      hostPath:"
+    echo "        path: /$SEAWEEDFS_CSI_CONFIG_DIR/var/mnt"
+    echo
+    echo "  # TODO: Set this"
+    echo "  resources: {}"
+    echo
+    echo "  # used to assign priority to server pods"
+    echo "  # ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/"
+    echo "  priorityClassName: system-node-critical"
+    echo
+    echo "  # Configure security context for Pod"
+    echo "  podSecurityContext:"
+    echo "    enabled: true"
+    echo "    runAsUser: 1000"
+    echo "    runAsGroup: 3000"
+    echo "    fsGroup: 2000"
+    echo
+    echo "  # Configure security context for Container"
+    echo "  containerSecurityContext:"
+    echo "    enabled: true"
+    echo "    runAsUser: 2000"
+    echo "    allowPrivilegeEscalation: false"
+    echo
+    echo "filer:"
+    echo "  replicas: 3"
+    echo "  #  replication type is XYZ:"
+    echo "  # X number of replica in other data centers"
+    echo "  # Y number of replica in other racks in the same data center"
+    echo "  # Z number of replica in other servers in the same rack"
+    echo "  defaultReplicaPlacement: 010"
+    echo
+    echo "  # Whether proxy or redirect to volume server during file GET request"
+    echo "  redirectOnRead: true"
+    echo
+    echo "  # Disable http request, only gRpc operations are allowed"
+    echo "  disableHttp: true"
+    echo
+    echo "  # Custom command line arguments to add to the filer command"
+    echo "  extraArgs: [\"-metricsIp\", \"0.0.0.0\"]"
+    echo
+    echo "  data:"
+    echo "    type: persistentVolumeClaim"
+    echo "    size: 200Mi"
+    echo "    storageClass: local-path"
+    echo
+    echo "  logs:"
+    echo "    type: persistentVolumeClaim"
+    echo "    size: 200Mi"
+    echo "    storageClass: local-path"
+    echo
+    echo "  # updatePartition is used to control a careful rolling update of SeaweedFS"
+    echo "  # masters."
+    echo "  updatePartition: 1"
+    echo
+    echo "  # TODO: Set this"
+    echo "  resources: {}"
+    echo
+    echo "  # used to assign priority to server pods"
+    echo "  priorityClassName: system-node-critical"
+    echo
+    echo "  # Configure security context for Pod"
+    echo "  podSecurityContext:"
+    echo "    enabled: true"
+    echo "    runAsUser: 1000"
+    echo "    runAsGroup: 3000"
+    echo "    fsGroup: 2000"
+    echo
+    echo "  # Configure security context for Container"
+    echo "  containerSecurityContext:"
+    echo "    enabled: true"
+    echo "    runAsUser: 2000"
+    echo "    allowPrivilegeEscalation: false"
+    echo
+    echo "  s3:"
+    echo "    enabled: false"
+    echo
+    echo "# TODO: Make sure s3 works & configure auth"
+    echo "s3:"
+    echo "  enabled: true"
+    echo "  replicas: 3"
+    echo
+    echo "  # TODO: Set this"
+    echo "  resources: {}"
+    echo
+    echo "  # used to assign priority to server pods"
+    echo "  priorityClassName: system-node-critical"
+    echo
+    echo "  # Configure security context for Pod"
+    echo "  podSecurityContext:"
+    echo "    enabled: true"
+    echo "    runAsUser: 1000"
+    echo "    runAsGroup: 3000"
+    echo "    fsGroup: 2000"
+    echo
+    echo "  # Configure security context for Container"
+    echo "  containerSecurityContext:"
+    echo "    enabled: true"
+    echo "    runAsUser: 2000"
+    echo "    allowPrivilegeEscalation: false"
+    echo
+    echo "  logs:"
+    echo "    type: persistentVolumeClaim"
+    echo "    size: 200Mi"
+    echo "    storageClass: local-path"
+    echo
+    echo "# TODO: Configure admin credentials"
+    echo "admin:"
+    echo "  enabled: true"
+    echo "  replicas: 1"
+    echo
+    echo "  # Admin authentication"
+    echo "  secret:"
+    echo "    # Name of an existing secret containing admin credentials. If set, adminUser and adminPassword below are ignored."
+    echo "    existingSecret: "
+    echo "    # Key in the existing secret for the admin username. Required if existingSecret is set."
+    echo "    userKey: "
+    echo "    # Key in the existing secret for the admin password. Required if existingSecret is set."
+    echo "    pwKey: "
+    echo "    adminUser: admin"
+    echo "    adminPassword:  # If empty, authentication is disabled."
+    echo
+    echo "  # Storage configuration"
+    echo "  data:"
+    echo "    type: persistentVolumeClaim"
+    echo "    size: 200Mi"
+    echo "    storageClass: local-path"
+    echo
+    echo "  logs:"
+    echo "    type: persistentVolumeClaim"
+    echo "    size: 200Mi"
+    echo "    storageClass: local-path"
+    echo
+    echo "  # TODO: Set these"
+    echo "  resources: {}"
+    echo "  podSecurityContext: {}"
+    echo "  containerSecurityContext: {}"
+    echo
+    echo "certificates:"
+    echo "  commonName: SeaweedFS CA"
+    echo "  keyAlgorithm: RSA"
+    echo "  keySize: 4096"
+  } > "$SEAWEEDFS_CSI_CONFIG_DIR/values.yaml"
 
-  local CHART_APPVERSION
-  CHART_APPVERSION="$( { helm show chart oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin --version $PROXMOX_CSI_PLUGIN_VERSION 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep '^appVersion:' | awk '{ print $2 }' )"
-  for GHCR_IMAGE in proxmox-csi-controller proxmox-csi-node; do
-    if ! cosign verify "ghcr.io/sergelogvinov/$GHCR_IMAGE:$CHART_APPVERSION" \
-        --certificate-identity "https://github.com/sergelogvinov/proxmox-csi-plugin/.github/workflows/release.yaml@refs/tags/$CHART_APPVERSION" \
-        --certificate-oidc-issuer https://token.actions.githubusercontent.com 1>/dev/null; then
-      echo "Could not verify image ghcr.io/sergelogvinov/$GHCR_IMAGE:$CHART_APPVERSION"
-      exit 1
-    fi
+  # Download local-path-provisioner images
+  for image in $( { helm template local-path-provisioner oci://ghcr.io/rancher/local-path-provisioner/charts/local-path-provisioner --values "$LOCALPATH_CSI_CONFIG_DIR/values.yaml" --version "$LOCALPATH_CSI_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u ); do
+    nerdctl pull -q "$image"
   done
 
-  local images
-  images="$( { helm template proxmox-csi oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin --values $CSI_CONFIG_LOCATION_DIR/values.yaml --version "$PROXMOX_CSI_PLUGIN_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image:' | sed 's/.*image: //g' |  tr -d '"' | sort -u )"
-  for image in $images; do
+  # Download seaweedfs images
+  for image in $( { helm template seaweedfs seaweedfs/seaweedfs --values "$SEAWEEDFS_CSI_CONFIG_DIR/values.yaml" --version "$SEAWEEDFS_CSI_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u ); do
     nerdctl pull -q "$image"
   done
 }
