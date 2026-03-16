@@ -1193,7 +1193,7 @@ csi() {
   # Setup values.yaml for seaweedfs helm chart
   {
     echo "global:"
-    echo "  enableSecurity: true"
+    echo "  enableSecurity: false"
     echo "  masterServer: null"
     echo "  securityConfig:"
     echo "    jwtSigning:"
@@ -1241,7 +1241,7 @@ csi() {
     echo "  logs:"
     echo "    type: persistentVolumeClaim"
     echo "    size: 200Mi"
-    echo "    storageClass: local-path-provisioner"
+    echo "    storageClass: local-path"
     echo
     echo "  # TODO: Set this"
     echo "  resources: {}"
@@ -1267,10 +1267,10 @@ csi() {
     echo "    runAsUser: 2000"
     echo "    allowPrivilegeEscalation: false"
     echo
-    echo "  volume:"
-    echo "    replicas: 3"
-    echo "    # Choose [memory|leveldb|leveldbMedium|leveldbLarge] mode for memory~performance balance., default memory"
-    echo "    index: leveldb"
+    echo "volume:"
+    echo "  replicas: 3"
+    echo "  # Choose [memory|leveldb|leveldbMedium|leveldbLarge] mode for memory~performance balance., default memory"
+    echo "  index: leveldb"
     echo
     echo "  # Custom command line arguments to add to the volume command"
     echo "  extraArgs: [\"-metricsIp\", \"0.0.0.0\"]"
@@ -1285,15 +1285,6 @@ csi() {
     echo "  resizeHook:"
     echo "    enabled: true"
     echo "    image: alpine/k8s:1.28.4"
-    echo
-    echo "  extraVolumeMounts: |"
-    echo "    - name: drive"
-    echo "      mountPath: /drive"
-    echo "      subPathExpr: \$(POD_NAME)"
-    echo "  extraVolumes: |"
-    echo "    - name: drive"
-    echo "      hostPath:"
-    echo "        path: /$SEAWEEDFS_CSI_CONFIG_DIR/var/mnt"
     echo
     echo "  # TODO: Set this"
     echo "  resources: {}"
@@ -1324,7 +1315,7 @@ csi() {
     echo "  defaultReplicaPlacement: 010"
     echo
     echo "  # Whether proxy or redirect to volume server during file GET request"
-    echo "  redirectOnRead: true"
+    echo "  redirectOnRead: false"
     echo
     echo "  # Disable http request, only gRpc operations are allowed"
     echo "  disableHttp: true"
@@ -1428,11 +1419,6 @@ csi() {
     echo "  resources: {}"
     echo "  podSecurityContext: {}"
     echo "  containerSecurityContext: {}"
-    echo
-    echo "certificates:"
-    echo "  commonName: SeaweedFS CA"
-    echo "  keyAlgorithm: RSA"
-    echo "  keySize: 4096"
   } > "$SEAWEEDFS_CSI_CONFIG_DIR/values.yaml"
 
   # Download local-path-provisioner images
