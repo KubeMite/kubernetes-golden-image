@@ -1131,18 +1131,24 @@ gatewayapi_crd() {
 csi() {
   local LOCALPATH_CSI_VERSION
   local LOCALPATH_CSI_CONFIG_DIR
-  local SEAWEEDFS_CSI_VERSION
-  local SEAWEEDFS_CSI_CONFIG_DIR
+  local SEAWEEDFS_VERSION
+  local SEAWEEDFS_CONFIG_DIR
+  local SEAWEEDFS_CSI_DRIVER_VERSION
+  local SEAWEEDFS_CSI_DRIVER_CONFIG_DIR
 
   LOCALPATH_CSI_VERSION="0.0.35"
   LOCALPATH_CSI_CONFIG_DIR="/etc/kubernetes/thirdparty/localpath-csi"
-  SEAWEEDFS_CSI_VERSION="4.17.0"
-  SEAWEEDFS_CSI_CONFIG_DIR="/etc/kubernetes/thirdparty/seaweedfs-csi"
+  SEAWEEDFS_VERSION="4.17.0"
+  SEAWEEDFS_CONFIG_DIR="/etc/kubernetes/thirdparty/seaweedfs"
+  SEAWEEDFS_CSI_DRIVER_VERSION="0.2.11"
+  SEAWEEDFS_CSI_DRIVER_CONFIG_DIR="/etc/kubernetes/thirdparty/seaweedfs-csi-driver"
 
   mkdir -p "$LOCALPATH_CSI_CONFIG_DIR"
-  mkdir -p "$SEAWEEDFS_CSI_CONFIG_DIR"
+  mkdir -p "$SEAWEEDFS_CONFIG_DIR"
+  mkdir -p "$SEAWEEDFS_CSI_DRIVER_CONFIG_DIR"
 
   helm repo add seaweedfs https://seaweedfs.github.io/seaweedfs/helm
+  helm repo add seaweedfs-csi-driver https://seaweedfs.github.io/seaweedfs-csi-driver/helm
   helm repo update
 
   # Setup values.yaml for localpath helm chart
@@ -1193,8 +1199,6 @@ csi() {
   # Setup values.yaml for seaweedfs helm chart
   {
     echo "global:"
-    echo "  enableSecurity: false"
-    echo "  masterServer: null"
     echo "  securityConfig:"
     echo "    jwtSigning:"
     echo "      volumeWrite: true"
@@ -1203,9 +1207,6 @@ csi() {
     echo "      filerRead: true"
     echo "  monitoring:"
     echo "    enabled: true"
-    echo "    gatewayHost: null"
-    echo "    gatewayPort: null"
-    echo "    additionalLabels: {}"
     echo "  # if enabled will use global.replicationPlacement and override master & filer defaultReplicaPlacement config"
     echo "  enableReplication: true"
     echo "  #  replication type is XYZ:"
@@ -1419,7 +1420,44 @@ csi() {
     echo "  resources: {}"
     echo "  podSecurityContext: {}"
     echo "  containerSecurityContext: {}"
-  } > "$SEAWEEDFS_CSI_CONFIG_DIR/values.yaml"
+  } > "$SEAWEEDFS_CONFIG_DIR/values.yaml"
+
+  # Setup values.yaml for seaweedfs-csi-driver helm chart
+  {
+    echo "# host and port of your SeaweedFs filer"
+    echo "seaweedfsFiler: seaweedfs-filer:8888"
+    echo "storageClassName: seaweedfs"
+    echo "isDefaultStorageClass: true"
+    echo
+    echo "csiProvisioner:"
+    echo "  # TODO: Set this"
+    echo "  resources: {}"
+    echo
+    echo "csiResizer:"
+    echo "  # TODO: Set this"
+    echo "  resources: {}"
+    echo
+    echo "csiAttacher:"
+    echo "  # TODO: Set this"
+    echo "  resources: {}"
+    echo
+    echo "csiNodeDriverRegistrar:"
+    echo "  # TODO: Set this"
+    echo "  resources: {}"
+    echo
+    echo "csiLivenessProbe:"
+    echo "  # TODO: Set this"
+    echo "  resources: {}"
+    echo
+    echo "mountService:"
+    echo "  # TODO: Set this"
+    echo "  resources: {}"
+    echo
+    echo "controller:"
+    echo "  replicas: 3"
+    echo "  # TODO: Set this"
+    echo "  resources: {}"
+  } > "$SEAWEEDFS_CSI_DRIVER_CONFIG_DIR/values.yaml"
 
   # Download local-path-provisioner images
   for image in $( { helm template local-path-provisioner oci://ghcr.io/rancher/local-path-provisioner/charts/local-path-provisioner --values "$LOCALPATH_CSI_CONFIG_DIR/values.yaml" --version "$LOCALPATH_CSI_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u ); do
@@ -1427,7 +1465,12 @@ csi() {
   done
 
   # Download seaweedfs images
-  for image in $( { helm template seaweedfs seaweedfs/seaweedfs --values "$SEAWEEDFS_CSI_CONFIG_DIR/values.yaml" --version "$SEAWEEDFS_CSI_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u ); do
+  for image in $(helm template seaweedfs seaweedfs/seaweedfs --values "$SEAWEEDFS_CONFIG_DIR/values.yaml" --version "$SEAWEEDFS_VERSION" | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u); do
+    nerdctl pull -q "$image"
+  done
+
+  # Download seaweedfs images
+  for image in $(helm template seaweedfs-csi-driver seaweedfs-csi-driver/seaweedfs-csi-driver --values "$SEAWEEDFS_CSI_DRIVER_CONFIG_DIR/values.yaml" --version "$SEAWEEDFS_CSI_DRIVER_VERSION" | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u); do
     nerdctl pull -q "$image"
   done
 }
