@@ -1283,8 +1283,9 @@ csi() {
     echo "  dataDirs:"
     echo "    - name: data"
     echo "      type: persistentVolumeClaim"
-    echo "      size: 200Mi"
+    echo "      size: 10Gi"
     echo "      storageClass: local-path"
+    echo "      maxVolumes: 1000"
     echo
     echo "  resources:"
     echo "    requests:"
