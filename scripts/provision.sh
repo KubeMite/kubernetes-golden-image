@@ -1213,7 +1213,7 @@ csi() {
     echo "  # X number of replica in other data centers"
     echo "  # Y number of replica in other racks in the same data center"
     echo "  # Z number of replica in other servers in the same rack"
-    echo "  replicationPlacement: 010"
+    echo "  replicationPlacement: 002"
     echo
     echo "master:"
     echo "  replicas: 3"
@@ -1222,7 +1222,7 @@ csi() {
     echo "  # X number of replica in other data centers"
     echo "  # Y number of replica in other racks in the same data center"
     echo "  # Z number of replica in other servers in the same rack"
-    echo "  defaultReplication: 010"
+    echo "  defaultReplication: 002"
     echo
     echo "  # Disable http request, only gRpc operations are allowed"
     echo "  disableHttp: true"
@@ -1313,7 +1313,7 @@ csi() {
     echo "  # X number of replica in other data centers"
     echo "  # Y number of replica in other racks in the same data center"
     echo "  # Z number of replica in other servers in the same rack"
-    echo "  defaultReplicaPlacement: 010"
+    echo "  defaultReplicaPlacement: 002"
     echo
     echo "  # Whether proxy or redirect to volume server during file GET request"
     echo "  redirectOnRead: false"
