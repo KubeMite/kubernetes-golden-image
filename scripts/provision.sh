@@ -1196,6 +1196,17 @@ csi() {
     echo "  unhealthyPodEvictionPolicy: IfHealthyBudget"
   } > "$LOCALPATH_CSI_CONFIG_DIR/values.yaml"
 
+  {
+    echo 'apiVersion: v1'
+    echo 'kind: Secret'
+    echo 'metadata:'
+    echo '  name: admin-ui-credentials'
+    echo '  namespace: seaweedfs'
+    echo 'data:'
+    echo '  username: $SEAWEEDFS_ADMIN_UI_USERNAME_BASE64'
+    echo '  password: $SEAWEEDFS_ADMIN_UI_PASSWORD_BASE64'
+  } > "$SEAWEEDFS_CONFIG_DIR/admin-ui-credentials.yaml"
+
   # Setup values.yaml for seaweedfs helm chart
   {
     echo "global:"
@@ -1397,21 +1408,18 @@ csi() {
     echo "    size: 200Mi"
     echo "    storageClass: local-path"
     echo
-    echo "# TODO: Configure admin credentials"
     echo "admin:"
     echo "  enabled: true"
-    echo "  replicas: 1"
+    echo "  replicas: 3"
     echo
     echo "  # Admin authentication"
     echo "  secret:"
     echo "    # Name of an existing secret containing admin credentials. If set, adminUser and adminPassword below are ignored."
-    echo "    existingSecret: "
+    echo "    existingSecret: admin-ui-credentials"
     echo "    # Key in the existing secret for the admin username. Required if existingSecret is set."
-    echo "    userKey: "
+    echo "    userKey: username"
     echo "    # Key in the existing secret for the admin password. Required if existingSecret is set."
-    echo "    pwKey: "
-    echo "    adminUser: admin"
-    echo "    adminPassword:  # If empty, authentication is disabled."
+    echo "    pwKey: password"
     echo
     echo "  # Storage configuration"
     echo "  data:"
