@@ -1410,7 +1410,7 @@ csi() {
     echo
     echo "admin:"
     echo "  enabled: true"
-    echo "  replicas: 3"
+    echo "  replicas: 1"
     echo
     echo "  # Admin authentication"
     echo "  secret:"
