@@ -1196,6 +1196,7 @@ csi() {
     echo "  unhealthyPodEvictionPolicy: IfHealthyBudget"
   } > "$LOCALPATH_CSI_CONFIG_DIR/values.yaml"
 
+  # Seaweedfs admin ui credentials
   {
     echo 'apiVersion: v1'
     echo 'kind: Secret'
@@ -1206,6 +1207,21 @@ csi() {
     echo '  username: $SEAWEEDFS_ADMIN_UI_USERNAME_BASE64'
     echo '  password: $SEAWEEDFS_ADMIN_UI_PASSWORD_BASE64'
   } > "$SEAWEEDFS_CONFIG_DIR/admin-ui-credentials.yaml"
+
+  # Seaweedfs S3 credentials
+  {
+    echo 'apiVersion: v1'
+    echo 'kind: Secret'
+    echo 'metadata:'
+    echo '  name: admin-ui-credentials'
+    echo '  namespace: seaweedfs'
+    echo 'data:'
+    echo '  admin_access_key_id: $SEAWEEDFS_S3_ADMIN_ACCESS_KEY_ID_BASE64'
+    echo '  admin_secret_access_key: $SEAWEEDFS_S3_ADMIN_SECRET_ACCESS_KEY_BASE64'
+    echo '  read_access_key_id: $SEAWEEDFS_S3_READ_ACCESS_KEY_ID_BASE64'
+    echo '  read_secret_access_key: $SEAWEEDFS_S3_READ_SECRET_ACCESS_KEY_BASE64'
+    echo '  seaweedfs_s3_config: $SEAWEEDFS_S3_CONFIG_BASE64'
+  } > "$SEAWEEDFS_CONFIG_DIR/s3-credentials.yaml"
 
   # Setup values.yaml for seaweedfs helm chart
   {
@@ -1379,10 +1395,12 @@ csi() {
     echo "  s3:"
     echo "    enabled: false"
     echo
-    echo "# TODO: Make sure s3 works & configure auth"
     echo "s3:"
     echo "  enabled: true"
     echo "  replicas: 3"
+    echo
+    echo "  enableAuth: true"
+    echo "  existingConfigSecret: s3-credentials"
     echo
     echo "  # TODO: Set this"
     echo "  resources: {}"
