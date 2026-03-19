@@ -1263,7 +1263,7 @@ csi() {
     echo
     echo "  data:"
     echo "    type: persistentVolumeClaim"
-    echo "    size: 1Gi"
+    echo "    size: 5Gi"
     echo "    storageClass: local-path"
     echo
     echo "  logs:"
@@ -1310,16 +1310,16 @@ csi() {
     echo "  dataDirs:"
     echo "    - name: data"
     echo "      type: persistentVolumeClaim"
-    echo "      size: 10Gi"
+    echo "      size: 20Gi"
     echo "      storageClass: local-path"
-    echo "      maxVolumes: 1000"
+    echo "      maxVolumes: 10000"
     echo
     echo "  resources:"
     echo "    requests:"
     echo "      cpu: 50m"
     echo "      memory: 50Mi"
     echo "    limits:"
-    echo "      memory: 300Mi"
+    echo "      memory: 500Mi"
     echo
     echo "  # used to assign priority to server pods"
     echo "  # ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/"
@@ -1357,7 +1357,7 @@ csi() {
     echo
     echo "  data:"
     echo "    type: persistentVolumeClaim"
-    echo "    size: 200Mi"
+    echo "    size: 5Gi"
     echo "    storageClass: local-path"
     echo
     echo "  logs:"
@@ -1402,8 +1402,12 @@ csi() {
     echo "  enableAuth: true"
     echo "  existingConfigSecret: s3-credentials"
     echo
-    echo "  # TODO: Set this"
-    echo "  resources: {}"
+    echo "  resources:"
+    echo "    requests:"
+    echo "      cpu: 50m"
+    echo "      memory: 50Mi"
+    echo "    limits:"
+    echo "      memory: 500Mi"
     echo
     echo "  # used to assign priority to server pods"
     echo "  priorityClassName: system-node-critical"
@@ -1482,7 +1486,7 @@ csi() {
     echo "      cpu: 10m"
     echo "      memory: 50Mi"
     echo "    limits:"
-    echo "      memory: 50Mi"
+    echo "      memory: 150Mi"
     echo
     echo "csiLivenessProbe:"
     echo "  resources:"
@@ -1490,7 +1494,7 @@ csi() {
     echo "      cpu: 50m"
     echo "      memory: 50Mi"
     echo "    limits:"
-    echo "      memory: 50Mi"
+    echo "      memory: 150Mi"
     echo
     echo "mountService:"
     echo "  resources:"
@@ -1507,7 +1511,7 @@ csi() {
     echo "      cpu: 50m"
     echo "      memory: 50Mi"
     echo "    limits:"
-    echo "      memory: 100Mi"
+    echo "      memory: 150Mi"
   } > "$SEAWEEDFS_CSI_DRIVER_CONFIG_DIR/values.yaml"
 
   # Download local-path-provisioner images
