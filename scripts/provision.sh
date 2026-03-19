@@ -1213,7 +1213,7 @@ csi() {
     echo 'apiVersion: v1'
     echo 'kind: Secret'
     echo 'metadata:'
-    echo '  name: admin-ui-credentials'
+    echo '  name: s3-credentials'
     echo '  namespace: seaweedfs'
     echo 'data:'
     echo '  admin_access_key_id: $SEAWEEDFS_S3_ADMIN_ACCESS_KEY_ID_BASE64'
