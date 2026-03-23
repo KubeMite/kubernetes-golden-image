@@ -1530,6 +1530,13 @@ csi() {
   done
 }
 
+kubernetes_hardening() {
+  chmod 600 -R /etc/kubernetes/thirdparty
+
+  mkdir /var/log/kubernetes
+  chmod 600 /var/log/kubernetes
+}
+
 main() {
   # Harden filesystems
   restrict_unused_filesystems
@@ -1574,6 +1581,7 @@ main() {
   prometheus_crd
   gatewayapi_crd
   csi
+  kubernetes_hardening
 }
 
 main
