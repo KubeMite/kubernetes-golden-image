@@ -1204,7 +1204,9 @@ csi() {
     echo '  name: admin-ui-credentials'
     echo '  namespace: seaweedfs'
     echo 'data:'
+    # shellcheck disable=SC2016
     echo '  username: $SEAWEEDFS_ADMIN_UI_USERNAME_BASE64'
+    # shellcheck disable=SC2016
     echo '  password: $SEAWEEDFS_ADMIN_UI_PASSWORD_BASE64'
   } > "$SEAWEEDFS_CONFIG_DIR/admin-ui-credentials.yaml"
 
@@ -1216,10 +1218,15 @@ csi() {
     echo '  name: s3-credentials'
     echo '  namespace: seaweedfs'
     echo 'data:'
+    # shellcheck disable=SC2016
     echo '  admin_access_key_id: $SEAWEEDFS_S3_ADMIN_ACCESS_KEY_ID_BASE64'
+    # shellcheck disable=SC2016
     echo '  admin_secret_access_key: $SEAWEEDFS_S3_ADMIN_SECRET_ACCESS_KEY_BASE64'
+    # shellcheck disable=SC2016
     echo '  read_access_key_id: $SEAWEEDFS_S3_READ_ACCESS_KEY_ID_BASE64'
+    # shellcheck disable=SC2016
     echo '  read_secret_access_key: $SEAWEEDFS_S3_READ_SECRET_ACCESS_KEY_BASE64'
+    # shellcheck disable=SC2016
     echo '  seaweedfs_s3_config: $SEAWEEDFS_S3_CONFIG_BASE64'
   } > "$SEAWEEDFS_CONFIG_DIR/s3-credentials.yaml"
 
