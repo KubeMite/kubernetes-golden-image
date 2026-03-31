@@ -2,7 +2,9 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/go
 {
 	"name": "Github Actions",
-	"image": "debian:13",
+	"build": {
+    	"dockerfile": "Dockerfile"
+	},
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
@@ -19,7 +21,5 @@
 				"shardulm94.trailing-spaces"
 			]
 		}
-	},
-
-	"postCreateCommand": "apt update && apt install -y ca-certificates"
+	}
 }
