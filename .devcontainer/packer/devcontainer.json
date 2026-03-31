@@ -2,7 +2,9 @@
 // README at: https://github.com/devcontainers/templates/tree/main/src/go
 {
 	"name": "Packer",
-	"image": "hashicorp/packer:full-1.15.0",
+	"build": {
+    	"dockerfile": "Dockerfile"
+	},
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
@@ -19,7 +21,5 @@
 				"shardulm94.trailing-spaces"
 			]
 		}
-	},
-
-	"postCreateCommand": "bash .devcontainer/packer/setup.sh"
+	}
 }
