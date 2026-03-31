@@ -3,8 +3,7 @@
 # This script assumes an alpine-linux environment
 # This script works with both arm and x86 architecture, and with both glibc and musl linux standard library
 # This script checks the sha256 of the donwloaded file before extracting it
-
-apk add curl jq unzip
+# This script requires curl, jq, and unzip to be installed
 
 ZIP_FILE_NAME="bws.zip"
 HASH_FILE_NAME="bws-sha256-checksums.txt"
