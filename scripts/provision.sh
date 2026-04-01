@@ -1537,6 +1537,237 @@ csi() {
   done
 }
 
+# Install cert-manager operator helm chart
+cert_manager() {
+  local CERT_MANAGER_VERSION
+  local CERT_MANAGER_CONFIG_DIR
+
+  CERT_MANAGER_VERSION="1.20.1"
+  CERT_MANAGER_CONFIG_DIR="/etc/kubernetes/thirdparty/cert-manager"
+
+  mkdir -p "$CERT_MANAGER_CONFIG_DIR"
+
+  curl -fsSL https://cert-manager.io/public-keys/cert-manager-keyring-2021-09-20-1020CF3C033D4F35BAE1C19E1226061C665DF13E.gpg -o "$CERT_MANAGER_CONFIG_DIR/cert-manager-keyring.gpg"
+
+  {
+    echo "crds:"
+    echo "  # This option decides if the CRDs should be installed"
+    echo "  # as part of the Helm installation."
+    echo "  enabled: true"
+    echo
+    echo "# The number of replicas of the cert-manager controller to run."
+    echo "replicaCount: 3"
+    echo
+    echo "# Deployment update strategy for the cert-manager controller deployment."
+    echo "strategy:"
+    echo "  type: RollingUpdate"
+    echo "  rollingUpdate:"
+    echo "    maxSurge: 0"
+    echo "    maxUnavailable: 1"
+    echo
+    echo "podDisruptionBudget:"
+    echo "  # Enable or disable the PodDisruptionBudget resource."
+    echo "  enabled: true"
+    echo
+    echo "  # This configures the maximum unavailable pods for disruptions"
+    echo "  maxUnavailable: 1"
+    echo
+    echo "  # This configures how to act with unhealthy pods during eviction"
+    echo "  unhealthyPodEvictionPolicy: AlwaysAllow"
+    echo
+    echo "# Resources to provide to the cert-manager controller pod."
+    echo "resources:"
+    echo "  requests:"
+    echo "    cpu: 100m"
+    echo "    memory: 50Mi"
+    echo
+    echo "# Pod Security Context."
+    echo "securityContext:"
+    echo "  runAsNonRoot: true"
+    echo "  seccompProfile:"
+    echo "    type: RuntimeDefault"
+    echo
+    echo "# Container Security Context to be set on the controller component container."
+    echo "containerSecurityContext:"
+    echo "  allowPrivilegeEscalation: false"
+    echo "  capabilities:"
+    echo "    drop:"
+    echo "    - ALL"
+    echo "  readOnlyRootFilesystem: true"
+    echo
+    echo "# Enables default network policies for cert-manager."
+    echo "networkPolicy:"
+    echo "  # Create network policies for cert-manager."
+    echo "  enabled: true"
+    echo
+    echo "# LivenessProbe settings for the controller container of the controller Pod."
+    echo "livenessProbe:"
+    echo "  enabled: true"
+    echo "  initialDelaySeconds: 10"
+    echo "  periodSeconds: 10"
+    echo "  timeoutSeconds: 15"
+    echo "  successThreshold: 1"
+    echo "  failureThreshold: 8"
+    echo
+    echo "prometheus:"
+    echo "  # Enable Prometheus monitoring for the cert-manager controller and webhook."
+    echo "  enabled: true"
+    echo
+    echo "  servicemonitor:"
+    echo "    # Create a ServiceMonitor to add cert-manager to Prometheus."
+    echo "    enabled: true"
+    echo
+    echo "    # The target port to set on the ServiceMonitor. This must match the port that the"
+    echo "    # cert-manager controller is listening on for metrics."
+    echo "    targetPort: http-metrics"
+    echo
+    echo "    # The path to scrape for metrics."
+    echo "    path: /metrics"
+    echo
+    echo "    # The interval to scrape metrics."
+    echo "    interval: 60s"
+    echo
+    echo "    # The timeout before a metrics scrape fails."
+    echo "    scrapeTimeout: 30s"
+    echo
+    echo "webhook:"
+    echo "  # Number of replicas of the cert-manager webhook to run."
+    echo "  replicaCount: 3"
+    echo
+    echo "  # The update strategy for the cert-manager webhook deployment."
+    echo "  strategy:"
+    echo "    type: RollingUpdate"
+    echo "    rollingUpdate:"
+    echo "      maxSurge: 0"
+    echo "      maxUnavailable: 1"
+    echo
+    echo "  # Pod Security Context to be set on the webhook component Pod."
+    echo "  securityContext:"
+    echo "    runAsNonRoot: true"
+    echo "    seccompProfile:"
+    echo "      type: RuntimeDefault"
+    echo
+    echo "  # Container Security Context to be set on the webhook component container."
+    echo "  containerSecurityContext:"
+    echo "    allowPrivilegeEscalation: false"
+    echo "    capabilities:"
+    echo "      drop:"
+    echo "      - ALL"
+    echo "    readOnlyRootFilesystem: true"
+    echo
+    echo "  podDisruptionBudget:"
+    echo "    # Enable or disable the PodDisruptionBudget resource."
+    echo "    enabled: true"
+    echo
+    echo "    # This property configures the maximum unavailable pods for disruptions"
+    echo "    maxUnavailable: 1"
+    echo
+    echo "  # Resources to provide to the cert-manager webhook pod."
+    echo "  resources:"
+    echo "    requests:"
+    echo "      cpu: 100m"
+    echo "      memory: 50Mi"
+    echo
+    echo "  # Liveness probe values."
+    echo "  livenessProbe:"
+    echo "    failureThreshold: 3"
+    echo "    initialDelaySeconds: 60"
+    echo "    periodSeconds: 10"
+    echo "    successThreshold: 1"
+    echo "    timeoutSeconds: 1"
+    echo
+    echo "  # Readiness probe values."
+    echo "  readinessProbe:"
+    echo "    failureThreshold: 3"
+    echo "    initialDelaySeconds: 5"
+    echo "    periodSeconds: 5"
+    echo "    successThreshold: 1"
+    echo "    timeoutSeconds: 1"
+    echo
+    echo "  # Enables default network policies for webhooks."
+    echo "  networkPolicy:"
+    echo "    # Create network policies for the webhooks."
+    echo "    enabled: true"
+    echo
+    echo "cainjector:"
+    echo
+    echo "  # The number of replicas of the cert-manager cainjector to run."
+    echo "  replicaCount: 3"
+    echo
+    echo "  # Deployment update strategy for the cert-manager cainjector deployment."
+    echo "  strategy:"
+    echo "    type: RollingUpdate"
+    echo "    rollingUpdate:"
+    echo "      maxSurge: 0"
+    echo "      maxUnavailable: 1"
+    echo
+    echo "  # Pod Security Context to be set on the cainjector component Pod"
+    echo "  securityContext:"
+    echo "    runAsNonRoot: true"
+    echo "    seccompProfile:"
+    echo "      type: RuntimeDefault"
+    echo
+    echo "  # Container Security Context to be set on the cainjector component container"
+    echo "  containerSecurityContext:"
+    echo "    allowPrivilegeEscalation: false"
+    echo "    capabilities:"
+    echo "      drop:"
+    echo "      - ALL"
+    echo "    readOnlyRootFilesystem: true"
+    echo
+    echo "  # Enables default network policies for cainjector."
+    echo "  networkPolicy:"
+    echo "    # Create network policies for the cainjector."
+    echo "    enabled: true"
+    echo
+    echo "  podDisruptionBudget:"
+    echo "    # Enable or disable the PodDisruptionBudget resource."
+    echo "    enabled: true"
+    echo
+    echo "    maxUnavailable: 1"
+    echo
+    echo "  # Resources to provide to the cert-manager cainjector pod."
+    echo "  resources:"
+    echo "    requests:"
+    echo "      cpu: 100m"
+    echo "      memory: 50Mi"
+    echo
+    echo "startupapicheck:"
+    echo "  # Enables the startup api check."
+    echo "  enabled: true"
+    echo
+    echo "  # Pod Security Context to be set on the startupapicheck component Pod."
+    echo "  securityContext:"
+    echo "    runAsNonRoot: true"
+    echo "    seccompProfile:"
+    echo "      type: RuntimeDefault"
+    echo
+    echo "  # Container Security Context to be set on the controller component container."
+    echo "  containerSecurityContext:"
+    echo "    allowPrivilegeEscalation: false"
+    echo "    capabilities:"
+    echo "      drop:"
+    echo "      - ALL"
+    echo "    readOnlyRootFilesystem: true"
+    echo
+    echo "  # Resources to provide to the cert-manager controller pod."
+    echo "  resources:"
+    echo "    requests:"
+    echo "      cpu: 100m"
+    echo "      memory: 50Mi"
+  } > "$CERT_MANAGER_CONFIG_DIR/values.yaml"
+
+  # Download cert-manager images
+  for image in $( { helm template cert-manager oci://quay.io/jetstack/charts/cert-manager --values "$CERT_MANAGER_CONFIG_DIR/values.yaml" --version "v$CERT_MANAGER_VERSION" --verify --keyring /etc/kubernetes/thirdparty/cert-manager/cert-manager-keyring.gpg 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u ); do
+    nerdctl pull -q "$image"
+  done
+}
+
+# Install External Secrets Manager to use Bitwarden Secrets Manager to pull secrets into the cluster
+# eso_bws(){
+
+# }
+
 kubernetes_hardening() {
   chmod 600 -R /etc/kubernetes/thirdparty
 
@@ -1588,6 +1819,8 @@ main() {
   prometheus_crd
   gatewayapi_crd
   csi
+  cert_manager
+  eso-bws
   kubernetes_hardening
 }
 
