@@ -1764,9 +1764,129 @@ cert_manager() {
 }
 
 # Install External Secrets Manager to use Bitwarden Secrets Manager to pull secrets into the cluster
-# eso_bws(){
+eso_bws() {
+  local EXTERNAL_SECRETS_OPERATOR_VERSION
+  local EXTERNAL_SECRETS_OPERATOR_CONFIG_DIR
 
-# }
+  EXTERNAL_SECRETS_OPERATOR_VERSION="2.2.0"
+  EXTERNAL_SECRETS_OPERATOR_CONFIG_DIR="/etc/kubernetes/thirdparty/external-secrets-operator"
+
+  mkdir -p "$CERT_MANAGER_CONFIG_DIR"
+
+  helm repo add external-secrets https://charts.external-secrets.io
+  helm repo update
+
+  {
+    echo "replicaCount: 3"
+    echo
+    echo "bitwarden-sdk-server:"
+    echo "  enabled: true"
+    echo
+    echo "# -- If set, install and upgrade CRDs through helm chart."
+    echo "installCRDs: true"
+    echo
+    echo "# -- If true, external-secrets will perform leader election between instances to ensure no more"
+    echo "# than one instance of external-secrets operates at a time."
+    echo "leaderElect: true"
+    echo
+    echo "# -- If true external secrets will use recommended kubernetes"
+    echo "# annotations as prometheus metric labels."
+    echo "extendedMetricLabels: true"
+    echo
+    echo "# -- if true, HTTP2 will be enabled for the services created by all controllers, curently metrics and webhook."
+    echo "enableHTTP2: true"
+    echo
+    echo "resources:"
+    echo "  requests:"
+    echo "    cpu: 50m"
+    echo "    memory: 50Mi"
+    echo
+    echo "serviceMonitor:"
+    echo "  # -- Specifies whether to create a ServiceMonitor resource for collecting Prometheus metrics"
+    echo "  enabled: true"
+    echo
+    echo "  # -- How should we react to missing CRD \"monitoring.coreos.com/v1/ServiceMonitor\""
+    echo "  renderMode: failIfMissing"
+    echo
+    echo "  # -- Let prometheus add an exported_ prefix to conflicting labels"
+    echo "  honorLabels: true"
+    echo
+    echo "metrics:"
+    echo
+    echo "  listen:"
+    echo "    port: 8080"
+    echo "    secure:"
+    echo "      enabled: true"
+    echo
+    echo "grafanaDashboard:"
+    echo "  # -- If true creates a Grafana dashboard."
+    echo "  enabled: true"
+    echo
+    echo "livenessProbe:"
+    echo "  # -- Enabled determines if the liveness probe should be used or not. By default it's disabled."
+    echo "  enabled: true"
+    echo
+    echo "readinessProbe:"
+    echo "  # -- Determines whether the readiness probe is enabled. Disabled by default. Enabling this will auto-start the health server (--live-addr) even if livenessProbe is disabled. Health server address/port are configured via livenessProbe.spec.address and livenessProbe.spec.port."
+    echo "  enabled: true"
+    echo
+    echo "# -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/"
+    echo "podDisruptionBudget:"
+    echo "  enabled: true"
+    echo "  minAvailable: 2    # @schema type:[integer, string]"
+    echo
+    echo "webhook:"
+    echo "  replicaCount: 3"
+    echo
+    echo "  certManager:"
+    echo "    # -- Enabling cert-manager support will disable the built in secret and"
+    echo "    # switch to using cert-manager (installed separately) to automatically issue"
+    echo "    # and renew the webhook certificate. This chart does not install"
+    echo "    # cert-manager for you, See https://cert-manager.io/docs/"
+    echo "    enabled: true"
+    echo "    cert:"
+    echo "      # -- Specific settings on the privateKey and its generation"
+    echo "      privateKey:"
+    echo "        rotationPolicy: Always"
+    echo "        algorithm: RSA"
+    echo "        size: 4096"
+    echo
+    echo "  # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/"
+    echo "  podDisruptionBudget:"
+    echo "    enabled: true"
+    echo "    minAvailable: 2"
+    echo
+    echo "  podSecurityContext:"
+    echo "    enabled: true"
+    echo
+    echo "  resources:"
+    echo "    requests:"
+    echo "      cpu: 50m"
+    echo "      memory: 50Mi"
+    echo
+    echo "certController:"
+    echo "  replicaCount: 3"
+    echo
+    echo "  # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/"
+    echo "  podDisruptionBudget:"
+    echo "    enabled: true"
+    echo "    minAvailable: 2"
+    echo
+    echo "  startupProbe:"
+    echo "    # -- Enabled determines if the startup probe should be used or not. By default it's enabled"
+    echo "    enabled: true"
+    echo
+    echo "  resources:"
+    echo "    requests:"
+    echo "      cpu: 50m"
+    echo "      memory: 50Mi"
+  } > "$CERT_MANAGER_CONFIG_DIR/values.yaml"
+
+  # Download cert-manager images
+  for image in $(helm template external-secrets external-secrets/external-secrets --values "$EXTERNAL_SECRETS_OPERATOR_CONFIG_DIR/values.yaml" --version "$EXTERNAL_SECRETS_OPERATOR_VERSION" | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u); do
+    nerdctl pull -q "$image"
+  done
+}
 
 kubernetes_hardening() {
   chmod 600 -R /etc/kubernetes/thirdparty
@@ -1820,7 +1940,7 @@ main() {
   gatewayapi_crd
   csi
   cert_manager
-  eso-bws
+  eso_bws
   kubernetes_hardening
 }
 
