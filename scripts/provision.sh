@@ -1128,414 +1128,415 @@ gatewayapi_crd() {
 }
 
 # Install Local-path-provisioner & Seaweedfs CSI plugins
-csi() {
-  local LOCALPATH_CSI_VERSION
-  local LOCALPATH_CSI_CONFIG_DIR
-  local SEAWEEDFS_VERSION
-  local SEAWEEDFS_CONFIG_DIR
-  local SEAWEEDFS_CSI_DRIVER_VERSION
-  local SEAWEEDFS_CSI_DRIVER_CONFIG_DIR
+# TODO: Move this to using installing using ArgoCD
+# csi() {
+#   local LOCALPATH_CSI_VERSION
+#   local LOCALPATH_CSI_CONFIG_DIR
+#   local SEAWEEDFS_VERSION
+#   local SEAWEEDFS_CONFIG_DIR
+#   local SEAWEEDFS_CSI_DRIVER_VERSION
+#   local SEAWEEDFS_CSI_DRIVER_CONFIG_DIR
 
-  LOCALPATH_CSI_VERSION="0.0.35"
-  LOCALPATH_CSI_CONFIG_DIR="/etc/kubernetes/thirdparty/localpath-csi"
-  SEAWEEDFS_VERSION="4.17.0"
-  SEAWEEDFS_CONFIG_DIR="/etc/kubernetes/thirdparty/seaweedfs"
-  SEAWEEDFS_CSI_DRIVER_VERSION="0.2.11"
-  SEAWEEDFS_CSI_DRIVER_CONFIG_DIR="/etc/kubernetes/thirdparty/seaweedfs-csi-driver"
+#   LOCALPATH_CSI_VERSION="0.0.35"
+#   LOCALPATH_CSI_CONFIG_DIR="/etc/kubernetes/thirdparty/localpath-csi"
+#   SEAWEEDFS_VERSION="4.17.0"
+#   SEAWEEDFS_CONFIG_DIR="/etc/kubernetes/thirdparty/seaweedfs"
+#   SEAWEEDFS_CSI_DRIVER_VERSION="0.2.11"
+#   SEAWEEDFS_CSI_DRIVER_CONFIG_DIR="/etc/kubernetes/thirdparty/seaweedfs-csi-driver"
 
-  mkdir -p "$LOCALPATH_CSI_CONFIG_DIR"
-  mkdir -p "$SEAWEEDFS_CONFIG_DIR"
-  mkdir -p "$SEAWEEDFS_CSI_DRIVER_CONFIG_DIR"
+#   mkdir -p "$LOCALPATH_CSI_CONFIG_DIR"
+#   mkdir -p "$SEAWEEDFS_CONFIG_DIR"
+#   mkdir -p "$SEAWEEDFS_CSI_DRIVER_CONFIG_DIR"
 
-  helm repo add seaweedfs https://seaweedfs.github.io/seaweedfs/helm
-  helm repo add seaweedfs-csi-driver https://seaweedfs.github.io/seaweedfs-csi-driver/helm
-  helm repo update
+#   helm repo add seaweedfs https://seaweedfs.github.io/seaweedfs/helm
+#   helm repo add seaweedfs-csi-driver https://seaweedfs.github.io/seaweedfs-csi-driver/helm
+#   helm repo update
 
-  # Setup values.yaml for localpath helm chart
-  {
-    echo "replicaCount: 3"
-    echo
-    echo "podSecurityContext:"
-    echo "  runAsNonRoot: true"
-    echo
-    echo "hostUsers: true"
-    echo
-    echo "securityContext:"
-    echo "  allowPrivilegeEscalation: false"
-    echo "  seccompProfile:"
-    echo "    type: RuntimeDefault"
-    echo "  capabilities:"
-    echo "    drop: [\"ALL\"]"
-    echo "  runAsUser: 65534"
-    echo "  runAsGroup: 65534"
-    echo "  readOnlyRootFilesystem: true"
-    echo
-    echo "resources:"
-    echo "  limits:"
-    echo "    cpu: 100m"
-    echo "    memory: 128Mi"
-    echo "  requests:"
-    echo "    cpu: 100m"
-    echo "    memory: 128Mi"
-    echo
-    echo "helperPod:"
-    echo "  resources:"
-    echo "    limits:"
-    echo "      cpu: 100m"
-    echo "      memory: 128Mi"
-    echo "    requests:"
-    echo "      cpu: 100m"
-    echo "      memory: 128Mi"
-    echo
-    echo "# Priority class name for the pod"
-    echo "priorityClassName: system-node-critical"
-    echo
-    echo "podDisruptionBudget:"
-    echo "  enabled: true"
-    echo "  maxUnavailable: 1"
-    echo "  unhealthyPodEvictionPolicy: IfHealthyBudget"
-  } > "$LOCALPATH_CSI_CONFIG_DIR/values.yaml"
+#   # Setup values.yaml for localpath helm chart
+#   {
+#     echo "replicaCount: 3"
+#     echo
+#     echo "podSecurityContext:"
+#     echo "  runAsNonRoot: true"
+#     echo
+#     echo "hostUsers: true"
+#     echo
+#     echo "securityContext:"
+#     echo "  allowPrivilegeEscalation: false"
+#     echo "  seccompProfile:"
+#     echo "    type: RuntimeDefault"
+#     echo "  capabilities:"
+#     echo "    drop: [\"ALL\"]"
+#     echo "  runAsUser: 65534"
+#     echo "  runAsGroup: 65534"
+#     echo "  readOnlyRootFilesystem: true"
+#     echo
+#     echo "resources:"
+#     echo "  limits:"
+#     echo "    cpu: 100m"
+#     echo "    memory: 128Mi"
+#     echo "  requests:"
+#     echo "    cpu: 100m"
+#     echo "    memory: 128Mi"
+#     echo
+#     echo "helperPod:"
+#     echo "  resources:"
+#     echo "    limits:"
+#     echo "      cpu: 100m"
+#     echo "      memory: 128Mi"
+#     echo "    requests:"
+#     echo "      cpu: 100m"
+#     echo "      memory: 128Mi"
+#     echo
+#     echo "# Priority class name for the pod"
+#     echo "priorityClassName: system-node-critical"
+#     echo
+#     echo "podDisruptionBudget:"
+#     echo "  enabled: true"
+#     echo "  maxUnavailable: 1"
+#     echo "  unhealthyPodEvictionPolicy: IfHealthyBudget"
+#   } > "$LOCALPATH_CSI_CONFIG_DIR/values.yaml"
 
-  # Seaweedfs admin ui credentials
-  {
-    echo 'apiVersion: v1'
-    echo 'kind: Secret'
-    echo 'metadata:'
-    echo '  name: admin-ui-credentials'
-    echo '  namespace: seaweedfs'
-    echo 'data:'
-    # shellcheck disable=SC2016
-    echo '  username: $SEAWEEDFS_ADMIN_UI_USERNAME_BASE64'
-    # shellcheck disable=SC2016
-    echo '  password: $SEAWEEDFS_ADMIN_UI_PASSWORD_BASE64'
-  } > "$SEAWEEDFS_CONFIG_DIR/admin-ui-credentials.yaml"
+#   # Seaweedfs admin ui credentials
+#   {
+#     echo 'apiVersion: v1'
+#     echo 'kind: Secret'
+#     echo 'metadata:'
+#     echo '  name: admin-ui-credentials'
+#     echo '  namespace: seaweedfs'
+#     echo 'data:'
+#     # shellcheck disable=SC2016
+#     echo '  username: $SEAWEEDFS_ADMIN_UI_USERNAME_BASE64'
+#     # shellcheck disable=SC2016
+#     echo '  password: $SEAWEEDFS_ADMIN_UI_PASSWORD_BASE64'
+#   } > "$SEAWEEDFS_CONFIG_DIR/admin-ui-credentials.yaml"
 
-  # Seaweedfs S3 credentials
-  {
-    echo 'apiVersion: v1'
-    echo 'kind: Secret'
-    echo 'metadata:'
-    echo '  name: s3-credentials'
-    echo '  namespace: seaweedfs'
-    echo 'data:'
-    # shellcheck disable=SC2016
-    echo '  admin_access_key_id: $SEAWEEDFS_S3_ADMIN_ACCESS_KEY_ID_BASE64'
-    # shellcheck disable=SC2016
-    echo '  admin_secret_access_key: $SEAWEEDFS_S3_ADMIN_SECRET_ACCESS_KEY_BASE64'
-    # shellcheck disable=SC2016
-    echo '  read_access_key_id: $SEAWEEDFS_S3_READ_ACCESS_KEY_ID_BASE64'
-    # shellcheck disable=SC2016
-    echo '  read_secret_access_key: $SEAWEEDFS_S3_READ_SECRET_ACCESS_KEY_BASE64'
-    # shellcheck disable=SC2016
-    echo '  seaweedfs_s3_config: $SEAWEEDFS_S3_CONFIG_BASE64'
-  } > "$SEAWEEDFS_CONFIG_DIR/s3-credentials.yaml"
+#   # Seaweedfs S3 credentials
+#   {
+#     echo 'apiVersion: v1'
+#     echo 'kind: Secret'
+#     echo 'metadata:'
+#     echo '  name: s3-credentials'
+#     echo '  namespace: seaweedfs'
+#     echo 'data:'
+#     # shellcheck disable=SC2016
+#     echo '  admin_access_key_id: $SEAWEEDFS_S3_ADMIN_ACCESS_KEY_ID_BASE64'
+#     # shellcheck disable=SC2016
+#     echo '  admin_secret_access_key: $SEAWEEDFS_S3_ADMIN_SECRET_ACCESS_KEY_BASE64'
+#     # shellcheck disable=SC2016
+#     echo '  read_access_key_id: $SEAWEEDFS_S3_READ_ACCESS_KEY_ID_BASE64'
+#     # shellcheck disable=SC2016
+#     echo '  read_secret_access_key: $SEAWEEDFS_S3_READ_SECRET_ACCESS_KEY_BASE64'
+#     # shellcheck disable=SC2016
+#     echo '  seaweedfs_s3_config: $SEAWEEDFS_S3_CONFIG_BASE64'
+#   } > "$SEAWEEDFS_CONFIG_DIR/s3-credentials.yaml"
 
-  # Setup values.yaml for seaweedfs helm chart
-  {
-    echo "global:"
-    echo "  securityConfig:"
-    echo "    jwtSigning:"
-    echo "      volumeWrite: true"
-    echo "      volumeRead: true"
-    echo "      filerWrite: true"
-    echo "      filerRead: true"
-    echo "  monitoring:"
-    echo "    enabled: true"
-    echo "  # if enabled will use global.replicationPlacement and override master & filer defaultReplicaPlacement config"
-    echo "  enableReplication: true"
-    echo "  #  replication type is XYZ:"
-    echo "  # X number of replica in other data centers"
-    echo "  # Y number of replica in other racks in the same data center"
-    echo "  # Z number of replica in other servers in the same rack"
-    echo "  replicationPlacement: 002"
-    echo
-    echo "master:"
-    echo "  replicas: 3"
-    echo "  volumePreallocate: true"
-    echo "  #  replication type is XYZ:"
-    echo "  # X number of replica in other data centers"
-    echo "  # Y number of replica in other racks in the same data center"
-    echo "  # Z number of replica in other servers in the same rack"
-    echo "  defaultReplication: 002"
-    echo
-    echo "  # Disable http request, only gRpc operations are allowed"
-    echo "  disableHttp: true"
-    echo
-    echo "  # Resume previous state on start master server"
-    echo "  resumeState: true"
-    echo "  # Use Hashicorp Raft"
-    echo "  raftHashicorp: true"
-    echo "  # Whether to bootstrap the Raft cluster. Only use it when use Hashicorp Raft"
-    echo "  raftBootstrap: true"
-    echo
-    echo "  data:"
-    echo "    type: persistentVolumeClaim"
-    echo "    size: 5Gi"
-    echo "    storageClass: local-path"
-    echo
-    echo "  logs:"
-    echo "    type: persistentVolumeClaim"
-    echo "    size: 200Mi"
-    echo "    storageClass: local-path"
-    echo
-    echo "  resources:"
-    echo "    requests:"
-    echo "      cpu: 50m"
-    echo "      memory: 50Mi"
-    echo "    limits:"
-    echo "      memory: 100Mi"
-    echo
-    echo "  # updatePartition is used to control a careful rolling update of SeaweedFS"
-    echo "  # masters."
-    echo "  updatePartition: 1"
-    echo
-    echo "  # used to assign priority to master pods"
-    echo "  # ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/"
-    echo "  priorityClassName: system-node-critical"
-    echo
-    echo "  # Configure security context for Pod"
-    echo "  podSecurityContext:"
-    echo "    enabled: true"
-    echo "    runAsUser: 1000"
-    echo "    runAsGroup: 1000"
-    echo "    fsGroup: 1000"
-    echo
-    echo "  # Configure security context for Container"
-    echo "  containerSecurityContext:"
-    echo "    enabled: true"
-    echo "    runAsUser: 1000"
-    echo "    allowPrivilegeEscalation: false"
-    echo
-    echo "volume:"
-    echo "  replicas: 3"
-    echo "  # Choose [memory|leveldb|leveldbMedium|leveldbLarge] mode for memory~performance balance., default memory"
-    echo "  index: leveldb"
-    echo
-    echo "  # Custom command line arguments to add to the volume command"
-    echo "  extraArgs: [\"-metricsIp\", \"0.0.0.0\"]"
-    echo
-    echo "  dataDirs:"
-    echo "    - name: data"
-    echo "      type: persistentVolumeClaim"
-    echo "      size: 20Gi"
-    echo "      storageClass: local-path"
-    echo "      maxVolumes: 10000"
-    echo
-    echo "  resources:"
-    echo "    requests:"
-    echo "      cpu: 50m"
-    echo "      memory: 50Mi"
-    echo "    limits:"
-    echo "      memory: 500Mi"
-    echo
-    echo "  # used to assign priority to server pods"
-    echo "  # ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/"
-    echo "  priorityClassName: system-node-critical"
-    echo
-    echo "  # Configure security context for Pod"
-    echo "  podSecurityContext:"
-    echo "    enabled: true"
-    echo "    runAsUser: 1000"
-    echo "    runAsGroup: 1000"
-    echo "    fsGroup: 1000"
-    echo
-    echo "  # Configure security context for Container"
-    echo "  containerSecurityContext:"
-    echo "    enabled: true"
-    echo "    runAsUser: 1000"
-    echo "    allowPrivilegeEscalation: false"
-    echo
-    echo "filer:"
-    echo "  replicas: 3"
-    echo "  #  replication type is XYZ:"
-    echo "  # X number of replica in other data centers"
-    echo "  # Y number of replica in other racks in the same data center"
-    echo "  # Z number of replica in other servers in the same rack"
-    echo "  defaultReplicaPlacement: 002"
-    echo
-    echo "  # Whether proxy or redirect to volume server during file GET request"
-    echo "  redirectOnRead: false"
-    echo
-    echo "  # Disable http request, only gRpc operations are allowed"
-    echo "  disableHttp: true"
-    echo
-    echo "  # Custom command line arguments to add to the filer command"
-    echo "  extraArgs: [\"-metricsIp\", \"0.0.0.0\"]"
-    echo
-    echo "  data:"
-    echo "    type: persistentVolumeClaim"
-    echo "    size: 5Gi"
-    echo "    storageClass: local-path"
-    echo
-    echo "  logs:"
-    echo "    type: persistentVolumeClaim"
-    echo "    size: 200Mi"
-    echo "    storageClass: local-path"
-    echo
-    echo "  # updatePartition is used to control a careful rolling update of SeaweedFS"
-    echo "  # masters."
-    echo "  updatePartition: 1"
-    echo
-    echo "  resources:"
-    echo "    requests:"
-    echo "      cpu: 50m"
-    echo "      memory: 50Mi"
-    echo "    limits:"
-    echo "      memory: 500Mi"
-    echo
-    echo "  # used to assign priority to server pods"
-    echo "  priorityClassName: system-node-critical"
-    echo
-    echo "  # Configure security context for Pod"
-    echo "  podSecurityContext:"
-    echo "    enabled: true"
-    echo "    runAsUser: 1000"
-    echo "    runAsGroup: 1000"
-    echo "    fsGroup: 1000"
-    echo
-    echo "  # Configure security context for Container"
-    echo "  containerSecurityContext:"
-    echo "    enabled: true"
-    echo "    runAsUser: 1000"
-    echo "    allowPrivilegeEscalation: false"
-    echo
-    echo "  s3:"
-    echo "    enabled: false"
-    echo
-    echo "s3:"
-    echo "  enabled: true"
-    echo "  replicas: 3"
-    echo
-    echo "  enableAuth: true"
-    echo "  existingConfigSecret: s3-credentials"
-    echo
-    echo "  resources:"
-    echo "    requests:"
-    echo "      cpu: 50m"
-    echo "      memory: 50Mi"
-    echo "    limits:"
-    echo "      memory: 500Mi"
-    echo
-    echo "  # used to assign priority to server pods"
-    echo "  priorityClassName: system-node-critical"
-    echo
-    echo "  # Configure security context for Pod"
-    echo "  podSecurityContext:"
-    echo "    enabled: true"
-    echo "    runAsUser: 1000"
-    echo "    runAsGroup: 1000"
-    echo "    fsGroup: 1000"
-    echo
-    echo "  # Configure security context for Container"
-    echo "  containerSecurityContext:"
-    echo "    enabled: true"
-    echo "    runAsUser: 1000"
-    echo "    allowPrivilegeEscalation: false"
-    echo
-    echo "  logs:"
-    echo "    type: persistentVolumeClaim"
-    echo "    size: 200Mi"
-    echo "    storageClass: local-path"
-    echo
-    echo "admin:"
-    echo "  enabled: true"
-    echo "  replicas: 1"
-    echo
-    echo "  # Admin authentication"
-    echo "  secret:"
-    echo "    # Name of an existing secret containing admin credentials. If set, adminUser and adminPassword below are ignored."
-    echo "    existingSecret: admin-ui-credentials"
-    echo "    # Key in the existing secret for the admin username. Required if existingSecret is set."
-    echo "    userKey: username"
-    echo "    # Key in the existing secret for the admin password. Required if existingSecret is set."
-    echo "    pwKey: password"
-    echo
-    echo "  # Storage configuration"
-    echo "  data:"
-    echo "    type: persistentVolumeClaim"
-    echo "    size: 200Mi"
-    echo "    storageClass: local-path"
-    echo
-    echo "  logs:"
-    echo "    type: persistentVolumeClaim"
-    echo "    size: 200Mi"
-    echo "    storageClass: local-path"
-    echo
-    echo "  resources:"
-    echo "    requests:"
-    echo "      cpu: 50m"
-    echo "      memory: 50Mi"
-    echo "    limits:"
-    echo "      memory: 100Mi"
-    echo "  # Configure security context for Pod"
-    echo "  podSecurityContext:"
-    echo "    enabled: true"
-    echo "    runAsUser: 1000"
-    echo "    runAsGroup: 1000"
-    echo "    fsGroup: 1000"
-    echo "  # Configure security context for Container"
-    echo "  containerSecurityContext:"
-    echo "    enabled: true"
-    echo "    runAsUser: 1000"
-    echo "    allowPrivilegeEscalation: false"
-  } > "$SEAWEEDFS_CONFIG_DIR/values.yaml"
+#   # Setup values.yaml for seaweedfs helm chart
+#   {
+#     echo "global:"
+#     echo "  securityConfig:"
+#     echo "    jwtSigning:"
+#     echo "      volumeWrite: true"
+#     echo "      volumeRead: true"
+#     echo "      filerWrite: true"
+#     echo "      filerRead: true"
+#     echo "  monitoring:"
+#     echo "    enabled: true"
+#     echo "  # if enabled will use global.replicationPlacement and override master & filer defaultReplicaPlacement config"
+#     echo "  enableReplication: true"
+#     echo "  #  replication type is XYZ:"
+#     echo "  # X number of replica in other data centers"
+#     echo "  # Y number of replica in other racks in the same data center"
+#     echo "  # Z number of replica in other servers in the same rack"
+#     echo "  replicationPlacement: 002"
+#     echo
+#     echo "master:"
+#     echo "  replicas: 3"
+#     echo "  volumePreallocate: true"
+#     echo "  #  replication type is XYZ:"
+#     echo "  # X number of replica in other data centers"
+#     echo "  # Y number of replica in other racks in the same data center"
+#     echo "  # Z number of replica in other servers in the same rack"
+#     echo "  defaultReplication: 002"
+#     echo
+#     echo "  # Disable http request, only gRpc operations are allowed"
+#     echo "  disableHttp: true"
+#     echo
+#     echo "  # Resume previous state on start master server"
+#     echo "  resumeState: true"
+#     echo "  # Use Hashicorp Raft"
+#     echo "  raftHashicorp: true"
+#     echo "  # Whether to bootstrap the Raft cluster. Only use it when use Hashicorp Raft"
+#     echo "  raftBootstrap: true"
+#     echo
+#     echo "  data:"
+#     echo "    type: persistentVolumeClaim"
+#     echo "    size: 5Gi"
+#     echo "    storageClass: local-path"
+#     echo
+#     echo "  logs:"
+#     echo "    type: persistentVolumeClaim"
+#     echo "    size: 200Mi"
+#     echo "    storageClass: local-path"
+#     echo
+#     echo "  resources:"
+#     echo "    requests:"
+#     echo "      cpu: 50m"
+#     echo "      memory: 50Mi"
+#     echo "    limits:"
+#     echo "      memory: 100Mi"
+#     echo
+#     echo "  # updatePartition is used to control a careful rolling update of SeaweedFS"
+#     echo "  # masters."
+#     echo "  updatePartition: 1"
+#     echo
+#     echo "  # used to assign priority to master pods"
+#     echo "  # ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/"
+#     echo "  priorityClassName: system-node-critical"
+#     echo
+#     echo "  # Configure security context for Pod"
+#     echo "  podSecurityContext:"
+#     echo "    enabled: true"
+#     echo "    runAsUser: 1000"
+#     echo "    runAsGroup: 1000"
+#     echo "    fsGroup: 1000"
+#     echo
+#     echo "  # Configure security context for Container"
+#     echo "  containerSecurityContext:"
+#     echo "    enabled: true"
+#     echo "    runAsUser: 1000"
+#     echo "    allowPrivilegeEscalation: false"
+#     echo
+#     echo "volume:"
+#     echo "  replicas: 3"
+#     echo "  # Choose [memory|leveldb|leveldbMedium|leveldbLarge] mode for memory~performance balance., default memory"
+#     echo "  index: leveldb"
+#     echo
+#     echo "  # Custom command line arguments to add to the volume command"
+#     echo "  extraArgs: [\"-metricsIp\", \"0.0.0.0\"]"
+#     echo
+#     echo "  dataDirs:"
+#     echo "    - name: data"
+#     echo "      type: persistentVolumeClaim"
+#     echo "      size: 20Gi"
+#     echo "      storageClass: local-path"
+#     echo "      maxVolumes: 10000"
+#     echo
+#     echo "  resources:"
+#     echo "    requests:"
+#     echo "      cpu: 50m"
+#     echo "      memory: 50Mi"
+#     echo "    limits:"
+#     echo "      memory: 500Mi"
+#     echo
+#     echo "  # used to assign priority to server pods"
+#     echo "  # ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/"
+#     echo "  priorityClassName: system-node-critical"
+#     echo
+#     echo "  # Configure security context for Pod"
+#     echo "  podSecurityContext:"
+#     echo "    enabled: true"
+#     echo "    runAsUser: 1000"
+#     echo "    runAsGroup: 1000"
+#     echo "    fsGroup: 1000"
+#     echo
+#     echo "  # Configure security context for Container"
+#     echo "  containerSecurityContext:"
+#     echo "    enabled: true"
+#     echo "    runAsUser: 1000"
+#     echo "    allowPrivilegeEscalation: false"
+#     echo
+#     echo "filer:"
+#     echo "  replicas: 3"
+#     echo "  #  replication type is XYZ:"
+#     echo "  # X number of replica in other data centers"
+#     echo "  # Y number of replica in other racks in the same data center"
+#     echo "  # Z number of replica in other servers in the same rack"
+#     echo "  defaultReplicaPlacement: 002"
+#     echo
+#     echo "  # Whether proxy or redirect to volume server during file GET request"
+#     echo "  redirectOnRead: false"
+#     echo
+#     echo "  # Disable http request, only gRpc operations are allowed"
+#     echo "  disableHttp: true"
+#     echo
+#     echo "  # Custom command line arguments to add to the filer command"
+#     echo "  extraArgs: [\"-metricsIp\", \"0.0.0.0\"]"
+#     echo
+#     echo "  data:"
+#     echo "    type: persistentVolumeClaim"
+#     echo "    size: 5Gi"
+#     echo "    storageClass: local-path"
+#     echo
+#     echo "  logs:"
+#     echo "    type: persistentVolumeClaim"
+#     echo "    size: 200Mi"
+#     echo "    storageClass: local-path"
+#     echo
+#     echo "  # updatePartition is used to control a careful rolling update of SeaweedFS"
+#     echo "  # masters."
+#     echo "  updatePartition: 1"
+#     echo
+#     echo "  resources:"
+#     echo "    requests:"
+#     echo "      cpu: 50m"
+#     echo "      memory: 50Mi"
+#     echo "    limits:"
+#     echo "      memory: 500Mi"
+#     echo
+#     echo "  # used to assign priority to server pods"
+#     echo "  priorityClassName: system-node-critical"
+#     echo
+#     echo "  # Configure security context for Pod"
+#     echo "  podSecurityContext:"
+#     echo "    enabled: true"
+#     echo "    runAsUser: 1000"
+#     echo "    runAsGroup: 1000"
+#     echo "    fsGroup: 1000"
+#     echo
+#     echo "  # Configure security context for Container"
+#     echo "  containerSecurityContext:"
+#     echo "    enabled: true"
+#     echo "    runAsUser: 1000"
+#     echo "    allowPrivilegeEscalation: false"
+#     echo
+#     echo "  s3:"
+#     echo "    enabled: false"
+#     echo
+#     echo "s3:"
+#     echo "  enabled: true"
+#     echo "  replicas: 3"
+#     echo
+#     echo "  enableAuth: true"
+#     echo "  existingConfigSecret: s3-credentials"
+#     echo
+#     echo "  resources:"
+#     echo "    requests:"
+#     echo "      cpu: 50m"
+#     echo "      memory: 50Mi"
+#     echo "    limits:"
+#     echo "      memory: 500Mi"
+#     echo
+#     echo "  # used to assign priority to server pods"
+#     echo "  priorityClassName: system-node-critical"
+#     echo
+#     echo "  # Configure security context for Pod"
+#     echo "  podSecurityContext:"
+#     echo "    enabled: true"
+#     echo "    runAsUser: 1000"
+#     echo "    runAsGroup: 1000"
+#     echo "    fsGroup: 1000"
+#     echo
+#     echo "  # Configure security context for Container"
+#     echo "  containerSecurityContext:"
+#     echo "    enabled: true"
+#     echo "    runAsUser: 1000"
+#     echo "    allowPrivilegeEscalation: false"
+#     echo
+#     echo "  logs:"
+#     echo "    type: persistentVolumeClaim"
+#     echo "    size: 200Mi"
+#     echo "    storageClass: local-path"
+#     echo
+#     echo "admin:"
+#     echo "  enabled: true"
+#     echo "  replicas: 1"
+#     echo
+#     echo "  # Admin authentication"
+#     echo "  secret:"
+#     echo "    # Name of an existing secret containing admin credentials. If set, adminUser and adminPassword below are ignored."
+#     echo "    existingSecret: admin-ui-credentials"
+#     echo "    # Key in the existing secret for the admin username. Required if existingSecret is set."
+#     echo "    userKey: username"
+#     echo "    # Key in the existing secret for the admin password. Required if existingSecret is set."
+#     echo "    pwKey: password"
+#     echo
+#     echo "  # Storage configuration"
+#     echo "  data:"
+#     echo "    type: persistentVolumeClaim"
+#     echo "    size: 200Mi"
+#     echo "    storageClass: local-path"
+#     echo
+#     echo "  logs:"
+#     echo "    type: persistentVolumeClaim"
+#     echo "    size: 200Mi"
+#     echo "    storageClass: local-path"
+#     echo
+#     echo "  resources:"
+#     echo "    requests:"
+#     echo "      cpu: 50m"
+#     echo "      memory: 50Mi"
+#     echo "    limits:"
+#     echo "      memory: 100Mi"
+#     echo "  # Configure security context for Pod"
+#     echo "  podSecurityContext:"
+#     echo "    enabled: true"
+#     echo "    runAsUser: 1000"
+#     echo "    runAsGroup: 1000"
+#     echo "    fsGroup: 1000"
+#     echo "  # Configure security context for Container"
+#     echo "  containerSecurityContext:"
+#     echo "    enabled: true"
+#     echo "    runAsUser: 1000"
+#     echo "    allowPrivilegeEscalation: false"
+#   } > "$SEAWEEDFS_CONFIG_DIR/values.yaml"
 
-  # Setup values.yaml for seaweedfs-csi-driver helm chart
-  {
-    echo "# host and port of your SeaweedFs filer"
-    echo "seaweedfsFiler: seaweedfs-filer:8888"
-    echo "storageClassName: seaweedfs"
-    echo "isDefaultStorageClass: true"
-    echo
-    echo "csiNodeDriverRegistrar:"
-    echo "  resources:"
-    echo "    requests:"
-    echo "      cpu: 10m"
-    echo "      memory: 50Mi"
-    echo "    limits:"
-    echo "      memory: 150Mi"
-    echo
-    echo "csiLivenessProbe:"
-    echo "  resources:"
-    echo "    requests:"
-    echo "      cpu: 50m"
-    echo "      memory: 50Mi"
-    echo "    limits:"
-    echo "      memory: 150Mi"
-    echo
-    echo "mountService:"
-    echo "  resources:"
-    echo "    requests:"
-    echo "      cpu: 10m"
-    echo "      memory: 50Mi"
-    echo "    limits:"
-    echo "      memory: 250Mi"
-    echo
-    echo "controller:"
-    echo "  replicas: 3"
-    echo "  resources:"
-    echo "    requests:"
-    echo "      cpu: 50m"
-    echo "      memory: 50Mi"
-    echo "    limits:"
-    echo "      memory: 150Mi"
-  } > "$SEAWEEDFS_CSI_DRIVER_CONFIG_DIR/values.yaml"
+#   # Setup values.yaml for seaweedfs-csi-driver helm chart
+#   {
+#     echo "# host and port of your SeaweedFs filer"
+#     echo "seaweedfsFiler: seaweedfs-filer:8888"
+#     echo "storageClassName: seaweedfs"
+#     echo "isDefaultStorageClass: true"
+#     echo
+#     echo "csiNodeDriverRegistrar:"
+#     echo "  resources:"
+#     echo "    requests:"
+#     echo "      cpu: 10m"
+#     echo "      memory: 50Mi"
+#     echo "    limits:"
+#     echo "      memory: 150Mi"
+#     echo
+#     echo "csiLivenessProbe:"
+#     echo "  resources:"
+#     echo "    requests:"
+#     echo "      cpu: 50m"
+#     echo "      memory: 50Mi"
+#     echo "    limits:"
+#     echo "      memory: 150Mi"
+#     echo
+#     echo "mountService:"
+#     echo "  resources:"
+#     echo "    requests:"
+#     echo "      cpu: 10m"
+#     echo "      memory: 50Mi"
+#     echo "    limits:"
+#     echo "      memory: 250Mi"
+#     echo
+#     echo "controller:"
+#     echo "  replicas: 3"
+#     echo "  resources:"
+#     echo "    requests:"
+#     echo "      cpu: 50m"
+#     echo "      memory: 50Mi"
+#     echo "    limits:"
+#     echo "      memory: 150Mi"
+#   } > "$SEAWEEDFS_CSI_DRIVER_CONFIG_DIR/values.yaml"
 
-  # Download local-path-provisioner images
-  for image in $( { helm template local-path-provisioner oci://ghcr.io/rancher/local-path-provisioner/charts/local-path-provisioner --values "$LOCALPATH_CSI_CONFIG_DIR/values.yaml" --version "$LOCALPATH_CSI_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u ); do
-    nerdctl pull -q "$image"
-  done
+#   # Download local-path-provisioner images
+#   for image in $( { helm template local-path-provisioner oci://ghcr.io/rancher/local-path-provisioner/charts/local-path-provisioner --values "$LOCALPATH_CSI_CONFIG_DIR/values.yaml" --version "$LOCALPATH_CSI_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u ); do
+#     nerdctl pull -q "$image"
+#   done
 
-  # Download seaweedfs images
-  for image in $(helm template seaweedfs seaweedfs/seaweedfs --values "$SEAWEEDFS_CONFIG_DIR/values.yaml" --version "$SEAWEEDFS_VERSION" | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u); do
-    nerdctl pull -q "$image"
-  done
+#   # Download seaweedfs images
+#   for image in $(helm template seaweedfs seaweedfs/seaweedfs --values "$SEAWEEDFS_CONFIG_DIR/values.yaml" --version "$SEAWEEDFS_VERSION" | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u); do
+#     nerdctl pull -q "$image"
+#   done
 
-  # Download seaweedfs images
-  for image in $(helm template seaweedfs-csi-driver seaweedfs-csi-driver/seaweedfs-csi-driver --values "$SEAWEEDFS_CSI_DRIVER_CONFIG_DIR/values.yaml" --version "$SEAWEEDFS_CSI_DRIVER_VERSION" | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u); do
-    nerdctl pull -q "$image"
-  done
-}
+#   # Download seaweedfs images
+#   for image in $(helm template seaweedfs-csi-driver seaweedfs-csi-driver/seaweedfs-csi-driver --values "$SEAWEEDFS_CSI_DRIVER_CONFIG_DIR/values.yaml" --version "$SEAWEEDFS_CSI_DRIVER_VERSION" | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u); do
+#     nerdctl pull -q "$image"
+#   done
+# }
 
 # Install cert-manager operator helm chart
 cert_manager() {
@@ -1938,7 +1939,8 @@ main() {
   install_cni
   prometheus_crd
   gatewayapi_crd
-  csi
+  # TODO: Move this to using installing using ArgoCD
+  # csi
   cert_manager
   eso_bws
   kubernetes_hardening
