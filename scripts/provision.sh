@@ -1772,7 +1772,7 @@ eso_bws() {
   EXTERNAL_SECRETS_OPERATOR_VERSION="2.2.0"
   EXTERNAL_SECRETS_OPERATOR_CONFIG_DIR="/etc/kubernetes/thirdparty/external-secrets-operator"
 
-  mkdir -p "$CERT_MANAGER_CONFIG_DIR"
+  mkdir -p "$EXTERNAL_SECRETS_OPERATOR_CONFIG_DIR"
 
   helm repo add external-secrets https://charts.external-secrets.io
   helm repo update
@@ -1881,7 +1881,7 @@ eso_bws() {
     echo "    requests:"
     echo "      cpu: 50m"
     echo "      memory: 50Mi"
-  } > "$CERT_MANAGER_CONFIG_DIR/values.yaml"
+  } > "$EXTERNAL_SECRETS_OPERATOR_CONFIG_DIR/values.yaml"
 
   # Download cert-manager images
   for image in $(helm template external-secrets external-secrets/external-secrets --values "$EXTERNAL_SECRETS_OPERATOR_CONFIG_DIR/values.yaml" --version "$EXTERNAL_SECRETS_OPERATOR_VERSION" | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u); do
