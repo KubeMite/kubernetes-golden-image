@@ -1778,6 +1778,34 @@ eso_bws() {
   helm repo update
 
   {
+    echo "apiVersion: cert-manager.io/v1"
+    echo "kind: Issuer"
+    echo "metadata:"
+    echo "  name: self-signed"
+    echo "  namespace: external-secrets"
+    echo "spec:"
+    echo "  selfSigned: {}"
+    echo "---"
+    echo "apiVersion: cert-manager.io/v1"
+    echo "kind: Certificate"
+    echo "metadata:"
+    echo "  name: bitwarden-tls-certs"
+    echo "  namespace: external-secrets"
+    echo "spec:"
+    echo "  secretName: bitwarden-tls-certs"
+    echo "  issuerRef:"
+    echo "    kind: \"Issuer\""
+    echo "    name: \"self-signed\""
+    echo "  commonName: bitwarden-sdk-server.external-secrets.svc.cluster.local"
+    echo "  dnsNames:"
+    echo "    - bitwarden-sdk-server.external-secrets.svc.cluster.local"
+    echo "  usages:"
+    echo "    - server auth"
+    echo "    - client auth"
+    echo "  isCA: true"
+  } > "$EXTERNAL_SECRETS_OPERATOR_CONFIG_DIR/certificate-resources.yaml"
+
+  {
     echo "replicaCount: 3"
     echo
     echo "bitwarden-sdk-server:"
@@ -1846,6 +1874,10 @@ eso_bws() {
     echo "    # cert-manager for you, See https://cert-manager.io/docs/"
     echo "    enabled: true"
     echo "    cert:"
+    echo "      issuerRef:"
+    echo "        group: cert-manager.io"
+    echo "        kind: \"Issuer\""
+    echo "        name: \"self-signed\""
     echo "      # -- Specific settings on the privateKey and its generation"
     echo "      privateKey:"
     echo "        rotationPolicy: Always"
@@ -1866,22 +1898,32 @@ eso_bws() {
     echo "      memory: 50Mi"
     echo
     echo "certController:"
-    echo "  replicaCount: 3"
-    echo
-    echo "  # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/"
-    echo "  podDisruptionBudget:"
-    echo "    enabled: true"
-    echo "    minAvailable: 2"
-    echo
-    echo "  startupProbe:"
-    echo "    # -- Enabled determines if the startup probe should be used or not. By default it's enabled"
-    echo "    enabled: true"
-    echo
-    echo "  resources:"
-    echo "    requests:"
-    echo "      cpu: 50m"
-    echo "      memory: 50Mi"
+    echo "  create: false"
   } > "$EXTERNAL_SECRETS_OPERATOR_CONFIG_DIR/values.yaml"
+
+  {
+    echo 'apiVersion: external-secrets.io/v1'
+    echo 'kind: ClusterSecretStore'
+    echo 'metadata:'
+    echo '  name: bitwarden-secretsmanager'
+    echo 'spec:'
+    echo '  provider:'
+    echo '    bitwardensecretsmanager:'
+    echo '      apiURL: https://api.bitwarden.com'
+    echo '      identityURL: https://identity.bitwarden.com'
+    echo '      auth:'
+    echo '        secretRef:'
+    echo '          credentials:'
+    echo '            key: token'
+    echo '            name: bitwarden-access-token'
+    echo '      bitwardenServerSDKURL: https://bitwarden-sdk-server.external-secrets.svc.cluster.local:9998'
+    # shellcheck disable=SC2016
+    echo '      caBundle: $BITWARDEN_CA_TLS_CERT'
+    # shellcheck disable=SC2016
+    echo '      organizationID: $BITWARDEN_ORGANIZATION_ID'
+    # shellcheck disable=SC2016
+    echo '      projectID: $BITWARDEN_PROJECT_ID'
+  } > "$EXTERNAL_SECRETS_OPERATOR_CONFIG_DIR/cluster-secret-store.yaml"
 
   # Download cert-manager images
   for image in $(helm template external-secrets external-secrets/external-secrets --values "$EXTERNAL_SECRETS_OPERATOR_CONFIG_DIR/values.yaml" --version "$EXTERNAL_SECRETS_OPERATOR_VERSION" | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u); do
