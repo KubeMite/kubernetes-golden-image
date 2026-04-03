@@ -1914,8 +1914,9 @@ eso_bws() {
     echo '      auth:'
     echo '        secretRef:'
     echo '          credentials:'
-    echo '            key: token'
     echo '            name: bitwarden-access-token'
+    echo '            namespace: external-secrets'
+    echo '            key: token'
     echo '      bitwardenServerSDKURL: https://bitwarden-sdk-server.external-secrets.svc.cluster.local:9998'
     # shellcheck disable=SC2016
     echo '      caBundle: $BITWARDEN_CA_TLS_CERT'
