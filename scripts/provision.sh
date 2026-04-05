@@ -1992,7 +1992,7 @@ argocd() {
     echo "  # -- Repositories list to be used by applications"
     echo "  repositories:"
     echo "    kubemite-gitops:"
-    echo "      url: https://github.com/kubemite/gitops"
+    echo "      url: https://github.com/kubemite/gitops.git"
     echo
     echo "  # Argo CD sensitive data"
     echo "  # Ref: https://argo-cd.readthedocs.io/en/stable/operator-manual/user-management/#sensitive-data-and-sso-client-secrets"
