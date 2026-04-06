@@ -2071,7 +2071,6 @@ argocd() {
   } > "$ARGOCD_CONFIG_DIR/values.yaml"
 
   {
-    echo "targetRevision: HEAD"
     echo "apiVersion: argoproj.io/v1alpha1"
     echo "kind: Application"
     echo "metadata:"
