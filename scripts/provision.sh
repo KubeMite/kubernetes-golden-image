@@ -878,7 +878,7 @@ install_cni() {
     echo "resources:"
     echo "  limits:"
     echo "    cpu: 250m"
-    echo "    memory: 512Gi"
+    echo "    memory: 512Mi"
     echo "  requests:"
     echo "    cpu: 50m"
     echo "    memory: 100Mi"
