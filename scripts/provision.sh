@@ -877,11 +877,11 @@ install_cni() {
     echo
     echo "resources:"
     echo "  limits:"
-    echo "    cpu: 500m"
-    echo "    memory: 1Gi"
-    echo "  requests:"
-    echo "    cpu: 100m"
+    echo "    cpu: 250m"
     echo "    memory: 512Mi"
+    echo "  requests:"
+    echo "    cpu: 50m"
+    echo "    memory: 100Mi"
     echo
     echo "annotateK8sNode: true"
     echo
@@ -906,10 +906,10 @@ install_cni() {
     echo "cni:"
     echo "  resources:"
     echo "    requests:"
-    echo "      cpu: 100m"
+    echo "      cpu: 50m"
     echo "      memory: 10Mi"
     echo "    limits:"
-    echo "      cpu: 500m"
+    echo "      cpu: 100m"
     echo "      memory: 100Mi"
     echo
     echo "ciliumEndpointSlice:"
@@ -940,11 +940,11 @@ install_cni() {
     echo "certgen:"
     echo "  resources:"
     echo "    requests:"
-    echo "      cpu: 100m"
-    echo "      memory: 100Mi"
+    echo "      cpu: 50m"
+    echo "      memory: 50Mi"
     echo "    limits:"
-    echo "      cpu: 500m"
-    echo "      memory: 500Mi"
+    echo "      cpu: 150m"
+    echo "      memory: 250Mi"
     echo
     echo "hubble:"
     echo "  metrics:"
@@ -959,11 +959,11 @@ install_cni() {
     echo "    rollOutPods: true"
     echo "    resources:"
     echo "      limits:"
-    echo "        cpu: 500m"
-    echo "        memory: 500Mi"
+    echo "        cpu: 250m"
+    echo "        memory: 250Mi"
     echo "      requests:"
-    echo "        cpu: 100m"
-    echo "        memory: 100Mi"
+    echo "        cpu: 50m"
+    echo "        memory: 50Mi"
     echo "    replicas: 3"
     echo "    sortBufferLenMax: 100"
     echo "    sortBufferDrainTimeout: 1s"
@@ -983,18 +983,18 @@ install_cni() {
     echo "        enabled: false # Broken, see https://github.com/cilium/cilium/pull/43607"
     echo "      resources:"
     echo "        limits:"
-    echo "          cpu: 500m"
-    echo "          memory: 300Mi"
+    echo "          cpu: 250m"
+    echo "          memory: 250Mi"
     echo "        requests:"
-    echo "          cpu: 100m"
+    echo "          cpu: 50m"
     echo "          memory: 64Mi"
     echo "    frontend:"
     echo "      resources:"
     echo "        limits:"
-    echo "          cpu: 500m"
-    echo "          memory: 300Mi"
+    echo "          cpu: 250m"
+    echo "          memory: 150Mi"
     echo "        requests:"
-    echo "          cpu: 100m"
+    echo "          cpu: 50m"
     echo "          memory: 64Mi"
     echo "    replicas: 2"
     echo "    ingress:"
@@ -1040,11 +1040,11 @@ install_cni() {
     echo "  rollOutPods: true"
     echo "  resources:"
     echo "    limits:"
-    echo "      cpu: 5000m"
-    echo "      memory: 1Gi"
+    echo "      cpu: 250m"
+    echo "      memory: 250Mi"
     echo "    requests:"
-    echo "      cpu: 100m"
-    echo "      memory: 200Mi"
+    echo "      cpu: 50m"
+    echo "      memory: 50Mi"
     echo "  prometheus:"
     echo "    serviceMonitor:"
     echo "      enabled: true"
@@ -1053,11 +1053,11 @@ install_cni() {
     echo "  rollOutPods: true"
     echo "  resources:"
     echo "    limits:"
-    echo "      cpu: 500m"
-    echo "      memory: 500Mi"
+    echo "      cpu: 250m"
+    echo "      memory: 250Mi"
     echo "    requests:"
-    echo "      cpu: 100m"
-    echo "      memory: 100Mi"
+    echo "      cpu: 50m"
+    echo "      memory: 50Mi"
     echo "  pprof:"
     echo "    enabled: true"
     echo "  prometheus:"
@@ -1073,8 +1073,8 @@ install_cni() {
     echo "      cpu: 100m"
     echo "      memory: 128Mi"
     echo "    requests:"
-    echo "      cpu: 100m"
-    echo "      memory: 128Mi"
+    echo "      cpu: 50m"
+    echo "      memory: 64Mi"
   } > /etc/kubernetes/thirdparty/cilium/values.yaml
   ## Download images for helm chart
   local cilium_images
@@ -1127,417 +1127,6 @@ gatewayapi_crd() {
   curl -fsSL "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v$GATEWAYAPI_VERSION/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml" -o "$GATEWAYAPI_MANIFEST_LOCATION/gateway.networking.k8s.io_tlsroutes.yaml"
 }
 
-# Install Local-path-provisioner & Seaweedfs CSI plugins
-# TODO: Move this to using installing using ArgoCD
-# csi() {
-#   local LOCALPATH_CSI_VERSION
-#   local LOCALPATH_CSI_CONFIG_DIR
-#   local SEAWEEDFS_VERSION
-#   local SEAWEEDFS_CONFIG_DIR
-#   local SEAWEEDFS_CSI_DRIVER_VERSION
-#   local SEAWEEDFS_CSI_DRIVER_CONFIG_DIR
-
-#   LOCALPATH_CSI_VERSION="0.0.35"
-#   LOCALPATH_CSI_CONFIG_DIR="/etc/kubernetes/thirdparty/localpath-csi"
-#   SEAWEEDFS_VERSION="4.17.0"
-#   SEAWEEDFS_CONFIG_DIR="/etc/kubernetes/thirdparty/seaweedfs"
-#   SEAWEEDFS_CSI_DRIVER_VERSION="0.2.11"
-#   SEAWEEDFS_CSI_DRIVER_CONFIG_DIR="/etc/kubernetes/thirdparty/seaweedfs-csi-driver"
-
-#   mkdir -p "$LOCALPATH_CSI_CONFIG_DIR"
-#   mkdir -p "$SEAWEEDFS_CONFIG_DIR"
-#   mkdir -p "$SEAWEEDFS_CSI_DRIVER_CONFIG_DIR"
-
-#   helm repo add seaweedfs https://seaweedfs.github.io/seaweedfs/helm
-#   helm repo add seaweedfs-csi-driver https://seaweedfs.github.io/seaweedfs-csi-driver/helm
-#   helm repo update
-
-#   # Setup values.yaml for localpath helm chart
-#   {
-#     echo "replicaCount: 3"
-#     echo
-#     echo "podSecurityContext:"
-#     echo "  runAsNonRoot: true"
-#     echo
-#     echo "hostUsers: true"
-#     echo
-#     echo "securityContext:"
-#     echo "  allowPrivilegeEscalation: false"
-#     echo "  seccompProfile:"
-#     echo "    type: RuntimeDefault"
-#     echo "  capabilities:"
-#     echo "    drop: [\"ALL\"]"
-#     echo "  runAsUser: 65534"
-#     echo "  runAsGroup: 65534"
-#     echo "  readOnlyRootFilesystem: true"
-#     echo
-#     echo "resources:"
-#     echo "  limits:"
-#     echo "    cpu: 100m"
-#     echo "    memory: 128Mi"
-#     echo "  requests:"
-#     echo "    cpu: 100m"
-#     echo "    memory: 128Mi"
-#     echo
-#     echo "helperPod:"
-#     echo "  resources:"
-#     echo "    limits:"
-#     echo "      cpu: 100m"
-#     echo "      memory: 128Mi"
-#     echo "    requests:"
-#     echo "      cpu: 100m"
-#     echo "      memory: 128Mi"
-#     echo
-#     echo "# Priority class name for the pod"
-#     echo "priorityClassName: system-node-critical"
-#     echo
-#     echo "podDisruptionBudget:"
-#     echo "  enabled: true"
-#     echo "  maxUnavailable: 1"
-#     echo "  unhealthyPodEvictionPolicy: IfHealthyBudget"
-#   } > "$LOCALPATH_CSI_CONFIG_DIR/values.yaml"
-
-#   # Seaweedfs admin ui credentials
-#   {
-#     echo 'apiVersion: v1'
-#     echo 'kind: Secret'
-#     echo 'metadata:'
-#     echo '  name: admin-ui-credentials'
-#     echo '  namespace: seaweedfs'
-#     echo 'data:'
-#     # shellcheck disable=SC2016
-#     echo '  username: $SEAWEEDFS_ADMIN_UI_USERNAME_BASE64'
-#     # shellcheck disable=SC2016
-#     echo '  password: $SEAWEEDFS_ADMIN_UI_PASSWORD_BASE64'
-#   } > "$SEAWEEDFS_CONFIG_DIR/admin-ui-credentials.yaml"
-
-#   # Seaweedfs S3 credentials
-#   {
-#     echo 'apiVersion: v1'
-#     echo 'kind: Secret'
-#     echo 'metadata:'
-#     echo '  name: s3-credentials'
-#     echo '  namespace: seaweedfs'
-#     echo 'data:'
-#     # shellcheck disable=SC2016
-#     echo '  admin_access_key_id: $SEAWEEDFS_S3_ADMIN_ACCESS_KEY_ID_BASE64'
-#     # shellcheck disable=SC2016
-#     echo '  admin_secret_access_key: $SEAWEEDFS_S3_ADMIN_SECRET_ACCESS_KEY_BASE64'
-#     # shellcheck disable=SC2016
-#     echo '  read_access_key_id: $SEAWEEDFS_S3_READ_ACCESS_KEY_ID_BASE64'
-#     # shellcheck disable=SC2016
-#     echo '  read_secret_access_key: $SEAWEEDFS_S3_READ_SECRET_ACCESS_KEY_BASE64'
-#     # shellcheck disable=SC2016
-#     echo '  seaweedfs_s3_config: $SEAWEEDFS_S3_CONFIG_BASE64'
-#   } > "$SEAWEEDFS_CONFIG_DIR/s3-credentials.yaml"
-
-#   # Setup values.yaml for seaweedfs helm chart
-#   {
-#     echo "global:"
-#     echo "  securityConfig:"
-#     echo "    jwtSigning:"
-#     echo "      volumeWrite: true"
-#     echo "      volumeRead: true"
-#     echo "      filerWrite: true"
-#     echo "      filerRead: true"
-#     echo "  monitoring:"
-#     echo "    enabled: true"
-#     echo "  # if enabled will use global.replicationPlacement and override master & filer defaultReplicaPlacement config"
-#     echo "  enableReplication: true"
-#     echo "  #  replication type is XYZ:"
-#     echo "  # X number of replica in other data centers"
-#     echo "  # Y number of replica in other racks in the same data center"
-#     echo "  # Z number of replica in other servers in the same rack"
-#     echo "  replicationPlacement: 002"
-#     echo
-#     echo "master:"
-#     echo "  replicas: 3"
-#     echo "  volumePreallocate: true"
-#     echo "  #  replication type is XYZ:"
-#     echo "  # X number of replica in other data centers"
-#     echo "  # Y number of replica in other racks in the same data center"
-#     echo "  # Z number of replica in other servers in the same rack"
-#     echo "  defaultReplication: 002"
-#     echo
-#     echo "  # Disable http request, only gRpc operations are allowed"
-#     echo "  disableHttp: true"
-#     echo
-#     echo "  # Resume previous state on start master server"
-#     echo "  resumeState: true"
-#     echo "  # Use Hashicorp Raft"
-#     echo "  raftHashicorp: true"
-#     echo "  # Whether to bootstrap the Raft cluster. Only use it when use Hashicorp Raft"
-#     echo "  raftBootstrap: true"
-#     echo
-#     echo "  data:"
-#     echo "    type: persistentVolumeClaim"
-#     echo "    size: 5Gi"
-#     echo "    storageClass: local-path"
-#     echo
-#     echo "  logs:"
-#     echo "    type: persistentVolumeClaim"
-#     echo "    size: 200Mi"
-#     echo "    storageClass: local-path"
-#     echo
-#     echo "  resources:"
-#     echo "    requests:"
-#     echo "      cpu: 50m"
-#     echo "      memory: 50Mi"
-#     echo "    limits:"
-#     echo "      memory: 100Mi"
-#     echo
-#     echo "  # updatePartition is used to control a careful rolling update of SeaweedFS"
-#     echo "  # masters."
-#     echo "  updatePartition: 1"
-#     echo
-#     echo "  # used to assign priority to master pods"
-#     echo "  # ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/"
-#     echo "  priorityClassName: system-node-critical"
-#     echo
-#     echo "  # Configure security context for Pod"
-#     echo "  podSecurityContext:"
-#     echo "    enabled: true"
-#     echo "    runAsUser: 1000"
-#     echo "    runAsGroup: 1000"
-#     echo "    fsGroup: 1000"
-#     echo
-#     echo "  # Configure security context for Container"
-#     echo "  containerSecurityContext:"
-#     echo "    enabled: true"
-#     echo "    runAsUser: 1000"
-#     echo "    allowPrivilegeEscalation: false"
-#     echo
-#     echo "volume:"
-#     echo "  replicas: 3"
-#     echo "  # Choose [memory|leveldb|leveldbMedium|leveldbLarge] mode for memory~performance balance., default memory"
-#     echo "  index: leveldb"
-#     echo
-#     echo "  # Custom command line arguments to add to the volume command"
-#     echo "  extraArgs: [\"-metricsIp\", \"0.0.0.0\"]"
-#     echo
-#     echo "  dataDirs:"
-#     echo "    - name: data"
-#     echo "      type: persistentVolumeClaim"
-#     echo "      size: 20Gi"
-#     echo "      storageClass: local-path"
-#     echo "      maxVolumes: 10000"
-#     echo
-#     echo "  resources:"
-#     echo "    requests:"
-#     echo "      cpu: 50m"
-#     echo "      memory: 50Mi"
-#     echo "    limits:"
-#     echo "      memory: 500Mi"
-#     echo
-#     echo "  # used to assign priority to server pods"
-#     echo "  # ref: https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/"
-#     echo "  priorityClassName: system-node-critical"
-#     echo
-#     echo "  # Configure security context for Pod"
-#     echo "  podSecurityContext:"
-#     echo "    enabled: true"
-#     echo "    runAsUser: 1000"
-#     echo "    runAsGroup: 1000"
-#     echo "    fsGroup: 1000"
-#     echo
-#     echo "  # Configure security context for Container"
-#     echo "  containerSecurityContext:"
-#     echo "    enabled: true"
-#     echo "    runAsUser: 1000"
-#     echo "    allowPrivilegeEscalation: false"
-#     echo
-#     echo "filer:"
-#     echo "  replicas: 3"
-#     echo "  #  replication type is XYZ:"
-#     echo "  # X number of replica in other data centers"
-#     echo "  # Y number of replica in other racks in the same data center"
-#     echo "  # Z number of replica in other servers in the same rack"
-#     echo "  defaultReplicaPlacement: 002"
-#     echo
-#     echo "  # Whether proxy or redirect to volume server during file GET request"
-#     echo "  redirectOnRead: false"
-#     echo
-#     echo "  # Disable http request, only gRpc operations are allowed"
-#     echo "  disableHttp: true"
-#     echo
-#     echo "  # Custom command line arguments to add to the filer command"
-#     echo "  extraArgs: [\"-metricsIp\", \"0.0.0.0\"]"
-#     echo
-#     echo "  data:"
-#     echo "    type: persistentVolumeClaim"
-#     echo "    size: 5Gi"
-#     echo "    storageClass: local-path"
-#     echo
-#     echo "  logs:"
-#     echo "    type: persistentVolumeClaim"
-#     echo "    size: 200Mi"
-#     echo "    storageClass: local-path"
-#     echo
-#     echo "  # updatePartition is used to control a careful rolling update of SeaweedFS"
-#     echo "  # masters."
-#     echo "  updatePartition: 1"
-#     echo
-#     echo "  resources:"
-#     echo "    requests:"
-#     echo "      cpu: 50m"
-#     echo "      memory: 50Mi"
-#     echo "    limits:"
-#     echo "      memory: 500Mi"
-#     echo
-#     echo "  # used to assign priority to server pods"
-#     echo "  priorityClassName: system-node-critical"
-#     echo
-#     echo "  # Configure security context for Pod"
-#     echo "  podSecurityContext:"
-#     echo "    enabled: true"
-#     echo "    runAsUser: 1000"
-#     echo "    runAsGroup: 1000"
-#     echo "    fsGroup: 1000"
-#     echo
-#     echo "  # Configure security context for Container"
-#     echo "  containerSecurityContext:"
-#     echo "    enabled: true"
-#     echo "    runAsUser: 1000"
-#     echo "    allowPrivilegeEscalation: false"
-#     echo
-#     echo "  s3:"
-#     echo "    enabled: false"
-#     echo
-#     echo "s3:"
-#     echo "  enabled: true"
-#     echo "  replicas: 3"
-#     echo
-#     echo "  enableAuth: true"
-#     echo "  existingConfigSecret: s3-credentials"
-#     echo
-#     echo "  resources:"
-#     echo "    requests:"
-#     echo "      cpu: 50m"
-#     echo "      memory: 50Mi"
-#     echo "    limits:"
-#     echo "      memory: 500Mi"
-#     echo
-#     echo "  # used to assign priority to server pods"
-#     echo "  priorityClassName: system-node-critical"
-#     echo
-#     echo "  # Configure security context for Pod"
-#     echo "  podSecurityContext:"
-#     echo "    enabled: true"
-#     echo "    runAsUser: 1000"
-#     echo "    runAsGroup: 1000"
-#     echo "    fsGroup: 1000"
-#     echo
-#     echo "  # Configure security context for Container"
-#     echo "  containerSecurityContext:"
-#     echo "    enabled: true"
-#     echo "    runAsUser: 1000"
-#     echo "    allowPrivilegeEscalation: false"
-#     echo
-#     echo "  logs:"
-#     echo "    type: persistentVolumeClaim"
-#     echo "    size: 200Mi"
-#     echo "    storageClass: local-path"
-#     echo
-#     echo "admin:"
-#     echo "  enabled: true"
-#     echo "  replicas: 1"
-#     echo
-#     echo "  # Admin authentication"
-#     echo "  secret:"
-#     echo "    # Name of an existing secret containing admin credentials. If set, adminUser and adminPassword below are ignored."
-#     echo "    existingSecret: admin-ui-credentials"
-#     echo "    # Key in the existing secret for the admin username. Required if existingSecret is set."
-#     echo "    userKey: username"
-#     echo "    # Key in the existing secret for the admin password. Required if existingSecret is set."
-#     echo "    pwKey: password"
-#     echo
-#     echo "  # Storage configuration"
-#     echo "  data:"
-#     echo "    type: persistentVolumeClaim"
-#     echo "    size: 200Mi"
-#     echo "    storageClass: local-path"
-#     echo
-#     echo "  logs:"
-#     echo "    type: persistentVolumeClaim"
-#     echo "    size: 200Mi"
-#     echo "    storageClass: local-path"
-#     echo
-#     echo "  resources:"
-#     echo "    requests:"
-#     echo "      cpu: 50m"
-#     echo "      memory: 50Mi"
-#     echo "    limits:"
-#     echo "      memory: 100Mi"
-#     echo "  # Configure security context for Pod"
-#     echo "  podSecurityContext:"
-#     echo "    enabled: true"
-#     echo "    runAsUser: 1000"
-#     echo "    runAsGroup: 1000"
-#     echo "    fsGroup: 1000"
-#     echo "  # Configure security context for Container"
-#     echo "  containerSecurityContext:"
-#     echo "    enabled: true"
-#     echo "    runAsUser: 1000"
-#     echo "    allowPrivilegeEscalation: false"
-#   } > "$SEAWEEDFS_CONFIG_DIR/values.yaml"
-
-#   # Setup values.yaml for seaweedfs-csi-driver helm chart
-#   {
-#     echo "# host and port of your SeaweedFs filer"
-#     echo "seaweedfsFiler: seaweedfs-filer:8888"
-#     echo "storageClassName: seaweedfs"
-#     echo "isDefaultStorageClass: true"
-#     echo
-#     echo "csiNodeDriverRegistrar:"
-#     echo "  resources:"
-#     echo "    requests:"
-#     echo "      cpu: 10m"
-#     echo "      memory: 50Mi"
-#     echo "    limits:"
-#     echo "      memory: 150Mi"
-#     echo
-#     echo "csiLivenessProbe:"
-#     echo "  resources:"
-#     echo "    requests:"
-#     echo "      cpu: 50m"
-#     echo "      memory: 50Mi"
-#     echo "    limits:"
-#     echo "      memory: 150Mi"
-#     echo
-#     echo "mountService:"
-#     echo "  resources:"
-#     echo "    requests:"
-#     echo "      cpu: 10m"
-#     echo "      memory: 50Mi"
-#     echo "    limits:"
-#     echo "      memory: 250Mi"
-#     echo
-#     echo "controller:"
-#     echo "  replicas: 3"
-#     echo "  resources:"
-#     echo "    requests:"
-#     echo "      cpu: 50m"
-#     echo "      memory: 50Mi"
-#     echo "    limits:"
-#     echo "      memory: 150Mi"
-#   } > "$SEAWEEDFS_CSI_DRIVER_CONFIG_DIR/values.yaml"
-
-#   # Download local-path-provisioner images
-#   for image in $( { helm template local-path-provisioner oci://ghcr.io/rancher/local-path-provisioner/charts/local-path-provisioner --values "$LOCALPATH_CSI_CONFIG_DIR/values.yaml" --version "$LOCALPATH_CSI_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u ); do
-#     nerdctl pull -q "$image"
-#   done
-
-#   # Download seaweedfs images
-#   for image in $(helm template seaweedfs seaweedfs/seaweedfs --values "$SEAWEEDFS_CONFIG_DIR/values.yaml" --version "$SEAWEEDFS_VERSION" | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u); do
-#     nerdctl pull -q "$image"
-#   done
-
-#   # Download seaweedfs images
-#   for image in $(helm template seaweedfs-csi-driver seaweedfs-csi-driver/seaweedfs-csi-driver --values "$SEAWEEDFS_CSI_DRIVER_CONFIG_DIR/values.yaml" --version "$SEAWEEDFS_CSI_DRIVER_VERSION" | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u); do
-#     nerdctl pull -q "$image"
-#   done
-# }
-
 # Install cert-manager operator helm chart
 cert_manager() {
   local CERT_MANAGER_VERSION
@@ -1579,7 +1168,7 @@ cert_manager() {
     echo "# Resources to provide to the cert-manager controller pod."
     echo "resources:"
     echo "  requests:"
-    echo "    cpu: 100m"
+    echo "    cpu: 50m"
     echo "    memory: 50Mi"
     echo
     echo "# Pod Security Context."
@@ -1666,7 +1255,7 @@ cert_manager() {
     echo "  # Resources to provide to the cert-manager webhook pod."
     echo "  resources:"
     echo "    requests:"
-    echo "      cpu: 100m"
+    echo "      cpu: 50m"
     echo "      memory: 50Mi"
     echo
     echo "  # Liveness probe values."
@@ -1730,7 +1319,7 @@ cert_manager() {
     echo "  # Resources to provide to the cert-manager cainjector pod."
     echo "  resources:"
     echo "    requests:"
-    echo "      cpu: 100m"
+    echo "      cpu: 50m"
     echo "      memory: 50Mi"
     echo
     echo "startupapicheck:"
@@ -1754,7 +1343,7 @@ cert_manager() {
     echo "  # Resources to provide to the cert-manager controller pod."
     echo "  resources:"
     echo "    requests:"
-    echo "      cpu: 100m"
+    echo "      cpu: 50m"
     echo "      memory: 50Mi"
   } > "$CERT_MANAGER_CONFIG_DIR/values.yaml"
 
@@ -1926,8 +1515,585 @@ eso_bws() {
     echo '      projectID: $BITWARDEN_PROJECT_ID'
   } > "$EXTERNAL_SECRETS_OPERATOR_CONFIG_DIR/cluster-secret-store.yaml"
 
-  # Download cert-manager images
+  # Download external-secrets images
   for image in $(helm template external-secrets external-secrets/external-secrets --values "$EXTERNAL_SECRETS_OPERATOR_CONFIG_DIR/values.yaml" --version "$EXTERNAL_SECRETS_OPERATOR_VERSION" | grep 'image: ' | awk '{print $2}' |  tr -d '"' | sort -u); do
+    nerdctl pull -q "$image"
+  done
+}
+
+# Install ArgoCD
+argocd() {
+  local ARGOCD_VERSION
+  local ARGOCD_CONFIG_DIR
+
+  ARGOCD_VERSION="9.4.17"
+  ARGOCD_CONFIG_DIR="/etc/kubernetes/thirdparty/argocd"
+
+  mkdir -p "$ARGOCD_CONFIG_DIR"
+
+  {
+    echo "## Globally shared configuration"
+    echo "global:"
+    echo
+    echo "  # -- Add Prometheus scrape annotations to all metrics services. This can be used as an alternative to the ServiceMonitors."
+    echo "  addPrometheusAnnotations: true"
+    echo
+    echo "  # -- Toggle and define pod-level security context."
+    echo "  securityContext:"
+    echo "    runAsUser: 999"
+    echo "    runAsGroup: 999"
+    echo "    fsGroup: 999"
+    echo
+    echo "  # Default network policy rules used by all components"
+    echo "  networkPolicy:"
+    echo "    # -- Create NetworkPolicy objects for all components"
+    echo "    create: true"
+    echo "    # -- Default deny all ingress traffic"
+    echo "    defaultDenyIngress: true"
+    echo
+    echo "  # -- Deployment strategy for the all deployed Deployments"
+    echo "  deploymentStrategy:"
+    echo "    type: RollingUpdate"
+    echo "    rollingUpdate:"
+    echo "      maxSurge: 1"
+    echo "      maxUnavailable: 1"
+    echo
+    echo "## Argo Configs"
+    echo "configs:"
+    echo "  # General Argo CD configuration. Any values you put under \`.configs.cm\` are passed to argocd-cm ConfigMap."
+    echo "  ## Ref: https://github.com/argoproj/argo-cd/blob/master/docs/operator-manual/argocd-cm.yaml"
+    echo "  cm:"
+    echo "    # -- Create the argocd-cm configmap for [declarative setup]"
+    echo "    create: true"
+    echo
+    echo "    # -- Timeout to discover if a new manifests version got published to the repository"
+    echo "    timeout.reconciliation: 60s"
+    echo
+    echo "    # -- Maximum jitter added to the reconciliation timeout to spread out refreshes and reduce repo-server load"
+    echo "    timeout.reconciliation.jitter: 30s"
+    echo
+    echo "    # -- Timeout to refresh application data as well as target manifests cache"
+    echo "    timeout.hard.reconciliation: 0s"
+    echo
+    echo "  params:"
+    echo "    server.insecure: true"
+    echo
+    echo "  # -- Repositories list to be used by applications"
+    echo "  repositories:"
+    echo "    kubemite-gitops:"
+    echo "      url: https://github.com/kubemite/gitops.git"
+    echo
+    echo "  # Argo CD sensitive data"
+    echo "  # Ref: https://argo-cd.readthedocs.io/en/stable/operator-manual/user-management/#sensitive-data-and-sso-client-secrets"
+    echo "  secret:"
+    echo "    # -- Create the argocd-secret"
+    echo "    createSecret: false"
+    echo
+    echo "# -- Array of extra K8s manifests to deploy"
+    echo "## Note: Supports use of custom Helm templates"
+    echo "extraObjects:"
+    echo "  - apiVersion: external-secrets.io/v1"
+    echo "    kind: ExternalSecret"
+    echo "    metadata:"
+    echo "      name: argocd-secret"
+    echo "      namespace: argocd"
+    echo "      labels:"
+    echo "        app.kubernetes.io/name: argocd-secret"
+    echo "        app.kubernetes.io/part-of: argocd"
+    echo "    spec:"
+    echo "      refreshInterval: 1h0m0s"
+    echo "      secretStoreRef:"
+    echo "        name: bitwarden-secretsmanager"
+    echo "        kind: ClusterSecretStore"
+    echo "      data:"
+    echo "        - secretKey: admin.password"
+    echo "          remoteRef:"
+    echo "            key: b39b8bad-ed60-473c-a23d-b42200cf959e"
+    echo "        - secretKey: server.secretkey"
+    echo "          remoteRef:"
+    echo "            key: 43c29779-189d-4977-a5b7-b42201493873"
+    echo
+    echo "## Application controller"
+    echo "controller:"
+    echo
+    echo "  # -- The number of application controller pods to run."
+    echo "  # Additional replicas will cause sharding of managed clusters across number of replicas."
+    echo "  ## With dynamic cluster distribution turned on, sharding of the clusters will gracefully"
+    echo "  ## rebalance if the number of replica's changes or one becomes unhealthy. (alpha)"
+    echo "  replicas: 3"
+    echo
+    echo "  ## Application controller Pod Disruption Budget"
+    echo "  ## Ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/"
+    echo "  pdb:"
+    echo "    # -- Deploy a [PodDisruptionBudget] for the application controller"
+    echo "    enabled: true"
+    echo "    # -- Number of pods that are unavailable after eviction as number or percentage (eg.: 50%)"
+    echo "    maxUnavailable: 1"
+    echo
+    echo "  ## Application controller emptyDir volumes"
+    echo "  emptyDir:"
+    echo "    # -- EmptyDir size limit for application controller"
+    echo "    sizeLimit: 1Gi"
+    echo
+    echo "  # -- Resource limits and requests for the application controller pods"
+    echo "  resources:"
+    echo "    limits:"
+    echo "      cpu: 250m"
+    echo "      memory: 512Mi"
+    echo "    requests:"
+    echo "      cpu: 50m"
+    echo "      memory: 64Mi"
+    echo
+    echo "  ## Application controller metrics configuration"
+    echo "  metrics:"
+    echo "    # -- Deploy metrics service"
+    echo "    enabled: true"
+    echo "    serviceMonitor:"
+    echo "      # -- Enable a prometheus ServiceMonitor"
+    echo "      enabled: true"
+    echo "      # -- Prometheus ServiceMonitor interval"
+    echo "      interval: 30s"
+    echo "      # -- When true, honorLabels preserves the metric's labels when they collide with the target's labels."
+    echo "      honorLabels: true"
+    echo "      # -- Prometheus ServiceMonitor selector"
+    echo "      selector: {}"
+    echo "        # prometheus: kube-prometheus"
+    echo
+    echo "    rules:"
+    echo "      # -- Deploy a PrometheusRule for the application controller"
+    echo "      enabled: true"
+    echo "      # -- PrometheusRule namespace"
+    echo "      namespace: \"\""
+    echo "      # -- PrometheusRule selector"
+    echo "      selector: {}"
+    echo "        # prometheus: kube-prometheus"
+    echo
+    echo "      # -- PrometheusRule.Spec for the application controller"
+    echo "      spec:"
+    echo "        - alert: ArgoAppMissing"
+    echo "          expr: |"
+    echo "            absent(argocd_app_info) == 1"
+    echo "          for: 15m"
+    echo "          labels:"
+    echo "            severity: critical"
+    echo "          annotations:"
+    echo "            summary: \"[Argo CD] No reported applications\""
+    echo "            description: >"
+    echo "              Argo CD has not reported any applications data for the past 15 minutes which"
+    echo "              means that it must be down or not functioning properly.  This needs to be"
+    echo "              resolved for this cloud to continue to maintain state."
+    echo "        - alert: ArgoAppNotSynced"
+    echo "          expr: |"
+    echo "            argocd_app_info{sync_status!=\"Synced\"} == 1"
+    echo "          for: 12h"
+    echo "          labels:"
+    echo "            severity: warning"
+    echo "          annotations:"
+    # shellcheck disable=SC2016
+    echo '            summary: "[{{`{{$labels.name}}`}}] Application not synchronized"'
+    echo "            description: >"
+    # shellcheck disable=SC2016
+    echo '              The application [{{`{{$labels.name}}`}} has not been synchronized for over'
+    echo "              12 hours which means that the state of this cloud has drifted away from the"
+    echo "              state inside Git."
+    echo
+    echo "  # Default application controller's network policy"
+    echo "  networkPolicy:"
+    echo "    # -- Default network policy rules used by application controller"
+    echo "    create: true"
+    echo
+    echo "## Dex"
+    echo "dex:"
+    echo "  enabled: false"
+    echo
+    echo "## Redis"
+    echo "redis:"
+    echo "  # -- Enable redis"
+    echo "  enabled: true"
+    echo "  ## Redis Pod Disruption Budget"
+    echo "  pdb:"
+    echo "    # -- Deploy a [PodDisruptionBudget] for the Redis"
+    echo "    enabled: true"
+    echo "    # -- Number of pods that are unavailble after eviction as number or percentage (eg.: 50%)."
+    echo "    maxUnavailable: 1"
+    echo
+    echo "  ## Prometheus redis-exporter sidecar"
+    echo "  exporter:"
+    echo "    # -- Enable Prometheus redis-exporter sidecar"
+    echo "    enabled: true"
+    echo
+    echo "    ## Probes for Redis exporter (optional)"
+    echo "    readinessProbe:"
+    echo "      # -- Enable Kubernetes liveness probe for Redis exporter (optional)"
+    echo "      enabled: true"
+    echo "    livenessProbe:"
+    echo "      # -- Enable Kubernetes liveness probe for Redis exporter"
+    echo "      enabled: true"
+    echo
+    echo "    # -- Resource limits and requests for redis-exporter sidecar"
+    echo "    resources:"
+    echo "      limits:"
+    echo "        cpu: 50m"
+    echo "        memory: 64Mi"
+    echo "      requests:"
+    echo "        cpu: 10m"
+    echo "        memory: 32Mi"
+    echo
+    echo "  ## Probes for Redis server (optional)"
+    echo "  readinessProbe:"
+    echo "    # -- Enable Kubernetes liveness probe for Redis server"
+    echo "    enabled: true"
+    echo "  livenessProbe:"
+    echo "    # -- Enable Kubernetes liveness probe for Redis server"
+    echo "    enabled: true"
+    echo
+    echo "  # -- Resource limits and requests for redis"
+    echo "  resources:"
+    echo "    limits:"
+    echo "      cpu: 100m"
+    echo "      memory: 128Mi"
+    echo "    requests:"
+    echo "      cpu: 50m"
+    echo "      memory: 50Mi"
+    echo
+    echo "  metrics:"
+    echo "    # -- Deploy metrics service"
+    echo "    enabled: true"
+    echo
+    echo "    # Redis metrics service configuration"
+    echo "    service:"
+    echo "      # -- Metrics service type"
+    echo "      type: ClusterIP"
+    echo "      # -- Metrics service clusterIP. 'None' makes a "headless service" (no virtual IP)"
+    echo "      clusterIP: None"
+    echo
+    echo "    serviceMonitor:"
+    echo "      # -- Enable a prometheus ServiceMonitor"
+    echo "      enabled: true"
+    echo "      # -- When true, honorLabels preserves the metric's labels when they collide with the target's labels."
+    echo "      honorLabels: true"
+    echo "      # -- Prometheus ServiceMonitor selector"
+    echo "      selector: {}"
+    echo "        # prometheus: kube-prometheus"
+    echo "      # -- Prometheus ServiceMonitor namespace"
+    echo "      namespace: \"\""
+    echo
+    echo "  # Default redis's network policy"
+    echo "  networkPolicy:"
+    echo "    # -- Default network policy rules used by redis"
+    echo "    create: true"
+    echo
+    echo "redisSecretInit:"
+    echo "  # -- Enable Redis secret initialization. If disabled, secret must be provisioned by alternative methods"
+    echo "  enabled: true"
+    echo
+    echo "  # -- Resource limits and requests for Redis secret-init Job"
+    echo "  resources:"
+    echo "    limits:"
+    echo "      cpu: 100m"
+    echo "      memory: 128Mi"
+    echo "    requests:"
+    echo "      cpu: 50m"
+    echo "      memory: 64Mi"
+    echo
+    echo "## Server"
+    echo "server:"
+    echo "  # -- The number of server pods to run"
+    echo "  replicas: 3"
+    echo
+    echo "  ## Argo CD server Pod Disruption Budget"
+    echo "  pdb:"
+    echo "    # -- Deploy a [PodDisruptionBudget] for the Argo CD server"
+    echo "    enabled: true"
+    echo "    # -- Number of pods that are unavailable after eviction as number or percentage (eg.: 50%)."
+    echo "    maxUnavailable: 1"
+    echo
+    echo "  ## Argo CD server emptyDir volumes"
+    echo "  emptyDir:"
+    echo "    # -- EmptyDir size limit for the Argo CD server"
+    echo "    sizeLimit: 1Gi"
+    echo
+    echo "  # -- Resource limits and requests for the Argo CD server"
+    echo "  resources:"
+    echo "    limits:"
+    echo "      cpu: 100m"
+    echo "      memory: 128Mi"
+    echo "    requests:"
+    echo "      cpu: 50m"
+    echo "      memory: 64Mi"
+    echo
+    echo "  # -- Deployment strategy to be added to the server Deployment"
+    echo "  deploymentStrategy:"
+    echo "    type: RollingUpdate"
+    echo "    rollingUpdate:"
+    echo "      maxSurge: 1"
+    echo "      maxUnavailable: 1"
+    echo
+    echo "  ## Server metrics service configuration"
+    echo "  metrics:"
+    echo "    # -- Deploy metrics service"
+    echo "    enabled: true"
+    echo "    service:"
+    echo "      # -- Metrics service type"
+    echo "      type: ClusterIP"
+    echo "      # -- Metrics service clusterIP. \`None\` makes a "headless service" (no virtual IP)"
+    echo "      clusterIP: \"\""
+    echo "    serviceMonitor:"
+    echo "      # -- Enable a prometheus ServiceMonitor"
+    echo "      enabled: true"
+    echo "      # -- When true, honorLabels preserves the metric's labels when they collide with the target's labels."
+    echo "      honorLabels: true"
+    echo "      # -- Prometheus ServiceMonitor selector"
+    echo "      selector: {}"
+    echo "        # prometheus: kube-prometheus"
+    echo "      # -- Prometheus ServiceMonitor namespace"
+    echo "      namespace: \"\""
+    echo
+    echo "  # Default ArgoCD Server's network policy"
+    echo "  networkPolicy:"
+    echo "    # -- Default network policy rules used by ArgoCD Server"
+    echo "    create: true"
+    echo
+    echo "## Repo Server"
+    echo "repoServer:"
+    echo "  # -- Repo server name"
+    echo "  name: repo-server"
+    echo
+    echo "  # -- The number of repo server pods to run"
+    echo "  replicas: 3"
+    echo
+    echo "  ## Repo server Pod Disruption Budget"
+    echo "  ## Ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/"
+    echo "  pdb:"
+    echo "    # -- Deploy a [PodDisruptionBudget] for the repo server"
+    echo "    enabled: true"
+    echo "    # -- Number of pods that are unavailable after eviction as number or percentage (eg.: 50%)."
+    echo "    maxUnavailable: 1"
+    echo
+    echo "  copyutil:"
+    echo "    # -- Resource limits and requests for the repo server copyutil initContainer"
+    echo "    resources:"
+    echo "      limits:"
+    echo "        cpu: 100m"
+    echo "        memory: 128Mi"
+    echo "      requests:"
+    echo "        cpu: 50m"
+    echo "        memory: 64Mi"
+    echo
+    echo "  ## RepoServer emptyDir volumes"
+    echo "  emptyDir:"
+    echo "    # -- EmptyDir size limit for repo server"
+    echo "    sizeLimit: 1Gi"
+    echo
+    echo "  # -- Resource limits and requests for the repo server pods"
+    echo "  resources:"
+    echo "    limits:"
+    echo "      cpu: 100m"
+    echo "      memory: 128Mi"
+    echo "    requests:"
+    echo "      cpu: 50m"
+    echo "      memory: 64Mi"
+    echo
+    echo "  # -- Deployment strategy to be added to the repo server Deployment"
+    echo "  deploymentStrategy:"
+    echo "    type: RollingUpdate"
+    echo "    rollingUpdate:"
+    echo "      maxSurge: 1"
+    echo "      maxUnavailable: 1"
+    echo
+    echo "  ## Repo server metrics service configuration"
+    echo "  metrics:"
+    echo "    # -- Deploy metrics service"
+    echo "    enabled: true"
+    echo "    service:"
+    echo "      # -- Metrics service type"
+    echo "      type: ClusterIP"
+    echo "      # -- Metrics service clusterIP. \`None\` makes a "headless service" (no virtual IP)"
+    echo "      clusterIP: \"\""
+    echo "    serviceMonitor:"
+    echo "      # -- Enable a prometheus ServiceMonitor"
+    echo "      enabled: true"
+    echo "      # -- When true, honorLabels preserves the metric's labels when they collide with the target's labels."
+    echo "      honorLabels: true"
+    echo "      # -- Prometheus ServiceMonitor selector"
+    echo "      selector: {}"
+    echo "        # prometheus: kube-prometheus"
+    echo "      namespace: \"\""
+    echo
+    echo "  # Default repo server's network policy"
+    echo "  networkPolicy:"
+    echo "    # -- Default network policy rules used by repo server"
+    echo "    create: true"
+    echo
+    echo "## ApplicationSet controller"
+    echo "applicationSet:"
+    echo
+    echo "  # -- The number of ApplicationSet controller pods to run"
+    echo "  replicas: 3"
+    echo
+    echo "  ## ApplicationSet controller Pod Disruption Budget"
+    echo "  ## Ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/"
+    echo "  pdb:"
+    echo "    # -- Deploy a [PodDisruptionBudget] for the ApplicationSet controller"
+    echo "    enabled: true"
+    echo "    # -- Number of pods that are unavailable after eviction as number or percentage (eg.: 50%)."
+    echo "    maxUnavailable: 1"
+    echo
+    echo "  ## ApplicationSet controller emptyDir volumes"
+    echo "  emptyDir:"
+    echo "    # -- EmptyDir size limit for applicationSet controller"
+    echo "    sizeLimit: 1Gi"
+    echo
+    echo "  ## Metrics service configuration"
+    echo "  metrics:"
+    echo "    # -- Deploy metrics service"
+    echo "    enabled: true"
+    echo "    service:"
+    echo "      # -- Metrics service type"
+    echo "      type: ClusterIP"
+    echo "      # -- Metrics service clusterIP. \`None\` makes a "headless service" (no virtual IP)"
+    echo "      clusterIP: \"\""
+    echo "    serviceMonitor:"
+    echo "      # -- Enable a prometheus ServiceMonitor"
+    echo "      enabled: true"
+    echo "      # -- When true, honorLabels preserves the metric's labels when they collide with the target's labels."
+    echo "      honorLabels: true"
+    echo "      # -- Prometheus ServiceMonitor selector"
+    echo "      selector: {}"
+    echo "        # prometheus: kube-prometheus"
+    echo "      # -- Prometheus ServiceMonitor namespace"
+    echo "      namespace: \"\""
+    echo
+    echo "  # -- Resource limits and requests for the ApplicationSet controller pods."
+    echo "  resources:"
+    echo "    limits:"
+    echo "      cpu: 100m"
+    echo "      memory: 256Mi"
+    echo "    requests:"
+    echo "      cpu: 50m"
+    echo "      memory: 64Mi"
+    echo
+    echo "  ## Probes for ApplicationSet controller (optional)"
+    echo "  readinessProbe:"
+    echo "    # -- Enable Kubernetes liveness probe for ApplicationSet controller"
+    echo "    enabled: true"
+    echo
+    echo "  livenessProbe:"
+    echo "    # -- Enable Kubernetes liveness probe for ApplicationSet controller"
+    echo "    enabled: true"
+    echo
+    echo "  # -- Deployment strategy to be added to the ApplicationSet controller Deployment"
+    echo "  deploymentStrategy:"
+    echo "    type: RollingUpdate"
+    echo "    rollingUpdate:"
+    echo "      maxSurge: 1"
+    echo "      maxUnavailable: 1"
+    echo
+    echo "  # -- Enable ApplicationSet in any namespace feature"
+    echo "  allowAnyNamespace: true"
+    echo
+    echo "  # Default ApplicationSet controller's network policy"
+    echo "  networkPolicy:"
+    echo "    # -- Default network policy rules used by ApplicationSet controller"
+    echo "    create: true"
+    echo
+    echo "## Notifications controller"
+    echo "notifications:"
+    echo "  # -- Enable notifications controller"
+    echo "  enabled: true"
+    echo
+    echo "  ## Notifications controller Pod Disruption Budget"
+    echo "  ## Ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb/"
+    echo "  pdb:"
+    echo "    # -- Deploy a [PodDisruptionBudget] for the notifications controller"
+    echo "    enabled: true"
+    echo "    # -- Number of pods that are unavailable after eviction as number or percentage (eg.: 50%)."
+    echo "    maxUnavailable: 1"
+    echo
+    echo "  secret:"
+    echo "    # -- Whether helm chart creates notifications controller secret"
+    echo "    ## If true, will create a secret with the name below. Otherwise, will assume existence of a secret with that name."
+    echo "    create: true"
+    echo
+    echo "    # -- Generic key:value pairs to be inserted into the secret"
+    echo "    ## Can be used for templates, notification services etc. Some examples given below."
+    echo "    ## For more information: https://argo-cd.readthedocs.io/en/stable/operator-manual/notifications/services/overview/"
+    echo "    items: {}"
+    echo
+    echo "  metrics:"
+    echo "    # -- Enables prometheus metrics server"
+    echo "    enabled: true"
+    echo "    service:"
+    echo "      # -- Metrics service type"
+    echo "      type: ClusterIP"
+    echo "      # -- Metrics service clusterIP. \`None\` makes a "headless service" (no virtual IP)"
+    echo "      clusterIP: \"\""
+    echo "    serviceMonitor:"
+    echo "      # -- Enable a prometheus ServiceMonitor"
+    echo "      enabled: true"
+    echo "      # -- Prometheus ServiceMonitor selector"
+    echo "      selector: {}"
+    echo "        # prometheus: kube-prometheus"
+    echo "      # -- When true, honorLabels preserves the metric's labels when they collide with the target's labels."
+    echo "      honorLabels: true"
+    echo
+    echo "  # -- Configures notification services such as slack, email or custom webhook"
+    echo "  ## For more information: https://argo-cd.readthedocs.io/en/stable/operator-manual/notifications/services/overview/"
+    echo "  notifiers: {}"
+    echo
+    echo "  # -- Resource limits and requests for the notifications controller"
+    echo "  resources:"
+    echo "    limits:"
+    echo "      cpu: 100m"
+    echo "      memory: 128Mi"
+    echo "    requests:"
+    echo "      cpu: 50m"
+    echo "      memory: 64Mi"
+    echo
+    echo "  ## Probes for notifications controller Pods (optional)"
+    echo "  readinessProbe:"
+    echo "    # -- Enable Kubernetes liveness probe for notifications controller Pods"
+    echo "    enabled: true"
+    echo "  livenessProbe:"
+    echo "    # -- Enable Kubernetes liveness probe for notifications controller Pods"
+    echo "    enabled: true"
+    echo
+    echo "  # -- The notification template is used to generate the notification content"
+    echo "  ## For more information: https://argo-cd.readthedocs.io/en/stable/operator-manual/notifications/templates/"
+    echo "  templates: {}"
+    echo "  # -- The trigger defines the condition when the notification should be sent"
+    echo "  ## For more information: https://argo-cd.readthedocs.io/en/stable/operator-manual/notifications/triggers/"
+    echo "  triggers: {}"
+    echo "  # Default notifications controller's network policy"
+    echo "  networkPolicy:"
+    echo "    # -- Default network policy rules used by notifications controller"
+    echo "    create: true"
+  } > "$ARGOCD_CONFIG_DIR/values.yaml"
+
+  {
+    echo "apiVersion: argoproj.io/v1alpha1"
+    echo "kind: Application"
+    echo "metadata:"
+    echo "  name: bootstrap"
+    echo "  namespace: argocd"
+    echo "spec:"
+    echo "  project: default"
+    echo "  source:"
+    echo "    repoURL: https://github.com/KubeMite/gitops.git"
+    echo "    path: bootstrap"
+    echo "  destination:"
+    echo "    server: https://kubernetes.default.svc"
+    echo "    namespace: argocd"
+    echo "  syncPolicy:"
+    echo "    automated:"
+    echo "      prune: true"
+    echo "      selfHeal: true"
+    echo "    syncOptions:"
+    echo "      - CreateNamespace=true"
+  }> "$ARGOCD_CONFIG_DIR/root-app.yaml"
+
+  # Download argocd images
+  for image in $( { helm template argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --values "$ARGOCD_CONFIG_DIR/values.yaml" --version "$ARGOCD_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image: ' | awk '{print $2}' | sort -u ); do
     nerdctl pull -q "$image"
   done
 }
@@ -1982,10 +2148,9 @@ main() {
   install_cni
   prometheus_crd
   gatewayapi_crd
-  # TODO: Move this to using installing using ArgoCD
-  # csi
   cert_manager
   eso_bws
+  argocd
   kubernetes_hardening
 }
 
