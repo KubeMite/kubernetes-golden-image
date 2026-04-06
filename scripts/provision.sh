@@ -2070,6 +2070,29 @@ argocd() {
     echo "    create: true"
   } > "$ARGOCD_CONFIG_DIR/values.yaml"
 
+  {
+    echo "targetRevision: HEAD"
+    echo "apiVersion: argoproj.io/v1alpha1"
+    echo "kind: Application"
+    echo "metadata:"
+    echo "  name: bootstrap"
+    echo "  namespace: argocd"
+    echo "spec:"
+    echo "  project: default"
+    echo "  source:"
+    echo "    repoURL: https://github.com/KubeMite/gitops.git"
+    echo "    path: bootstrap"
+    echo "  destination:"
+    echo "    server: https://kubernetes.default.svc"
+    echo "    namespace: argocd"
+    echo "  syncPolicy:"
+    echo "    automated:"
+    echo "      prune: true"
+    echo "      selfHeal: true"
+    echo "    syncOptions:"
+    echo "      - CreateNamespace=true"
+  }> "$ARGOCD_CONFIG_DIR/root-app.yaml"
+
   # Download argocd images
   for image in $( { helm template argocd oci://ghcr.io/argoproj/argo-helm/argo-cd --values "$ARGOCD_CONFIG_DIR/values.yaml" --version "$ARGOCD_VERSION" 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep 'image: ' | awk '{print $2}' | sort -u ); do
     nerdctl pull -q "$image"
