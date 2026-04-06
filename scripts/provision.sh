@@ -1968,10 +1968,10 @@ argocd() {
     echo "  resources:"
     echo "    limits:"
     echo "      cpu: 100m"
-    echo "      memory: 128Mi"
+    echo "      memory: 256Mi"
     echo "    requests:"
     echo "      cpu: 50m"
-    echo "      memory: 100Mi"
+    echo "      memory: 50Mi"
     echo
     echo "  ## Probes for ApplicationSet controller (optional)"
     echo "  readinessProbe:"
