@@ -857,9 +857,9 @@ configure_ha() {
 install_cni() {
   local CILIUM_VERSION=1.19.1
   local CILIUM_CLI_VERSION=0.19.2
+  local CONFIG_DIR="/etc/kubernetes/thirdparty/cilium"
 
-  # Helm chart
-  ## Validate helm chart
+  # Validate helm chart
   if ! cosign verify \
       --certificate-identity-regexp='https://github.com/cilium/cilium/.*' \
       --certificate-oidc-issuer=https://token.actions.githubusercontent.com \
@@ -867,8 +867,10 @@ install_cni() {
     echo "Could not verify Cilium helm chart version $CILIUM_VERSION!"
     exit 1
   fi
-  ## Configure helm chart
-  mkdir -p /etc/kubernetes/thirdparty/cilium
+
+  mkdir -p "$CONFIG_DIR"
+
+  # Configure helm chart
   {
     echo "k8sServiceHost: 172.16.3.10"
     echo "k8sServicePort: 8443"
@@ -886,7 +888,7 @@ install_cni() {
     echo "annotateK8sNode: true"
     echo
     echo "l2announcements:"
-    echo "  enabled: false"
+    echo "  enabled: true"
     echo
     echo "l2podAnnouncements:"
     echo "  enabled: false"
@@ -921,6 +923,9 @@ install_cni() {
     echo "ingressController:"
     echo "  enabled: true"
     echo "  default: true"
+    echo "  service:"
+    echo "    annotations:"
+    echo "      io.cilium/lb-ipam-ips: 172.16.3.220"
     echo
     echo "gatewayAPI:"
     echo "  enabled: true"
@@ -997,8 +1002,14 @@ install_cni() {
     echo "          cpu: 50m"
     echo "          memory: 64Mi"
     echo "    replicas: 2"
+    echo "    service:"
+    echo "      # -- Annotations to be added for the Hubble UI service"
+    echo "      annotations:"
+    echo "        io.cilium/lb-ipam-ips: 172.16.3.221"
+    echo "      # --- The type of service used for Hubble UI access, either ClusterIP or NodePort."
+    echo "      type: LoadBalancer"
     echo "    ingress:"
-    echo "      enabled: true"
+    echo "      enabled: false"
     echo "    dynamic:"
     echo "      enabled: true"
     echo
@@ -1075,10 +1086,39 @@ install_cni() {
     echo "    requests:"
     echo "      cpu: 50m"
     echo "      memory: 64Mi"
-  } > /etc/kubernetes/thirdparty/cilium/values.yaml
-  ## Download images for helm chart
+  } > "$CONFIG_DIR/values.yaml"
+
+  # Configure external access to LoadBalancer services
+  {
+    echo "apiVersion: cilium.io/v2alpha1"
+    echo "kind: CiliumL2AnnouncementPolicy"
+    echo "metadata:"
+    echo "  name: loadbalancer-ip-external-access"
+    echo "spec:"
+    echo "  nodeSelector:"
+    echo "    matchExpressions:"
+    echo "      - key: kubernetes.io/os"
+    echo "        operator: In"
+    echo "        values:"
+    echo "          - linux"
+    echo "  interfaces:"
+    echo "  - ^ens[0-9]+"
+    echo "  loadBalancerIPs: true"
+  } > "$CONFIG_DIR/CiliumL2AnnouncementPolicy.yaml"
+  {
+    echo "apiVersion: cilium.io/v2"
+    echo "kind: CiliumLoadBalancerIPPool"
+    echo "metadata:"
+    echo "  name: external-services"
+    echo "spec:"
+    echo "  blocks:"
+    echo "  - start: 172.16.3.220"
+    echo "    stop: 172.16.3.254"
+  } > "$CONFIG_DIR/CiliumLoadBalancerIPPool.yaml"
+
+  # Download images for helm chart
   local cilium_images
-  cilium_images="$( { helm template cilium oci://quay.io/cilium/charts/cilium --values /etc/kubernetes/thirdparty/cilium/values.yaml --set prometheus.serviceMonitor.trustCRDsExist=true --version 1.19.1 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep -oE '(quay.*)' | tr -d '"' | sort -u )"
+  cilium_images="$( { helm template cilium oci://quay.io/cilium/charts/cilium --values "$CONFIG_DIR/values.yaml" --set prometheus.serviceMonitor.trustCRDsExist=true --version 1.19.1 2>&1 1>&3 | grep -vE '^(Pulled:|Digest:)' >&2; } 3>&1 | grep -oE '(quay.*)' | tr -d '"' | sort -u )"
   for image in $cilium_images; do
     nerdctl pull -q "$image"
   done
@@ -1828,6 +1868,14 @@ argocd() {
     echo "    rollingUpdate:"
     echo "      maxSurge: 1"
     echo "      maxUnavailable: 1"
+    echo
+    echo "  ## Server service configuration"
+    echo "  service:"
+    echo "    # -- Server service annotations"
+    echo "    annotations:"
+    echo "      io.cilium/lb-ipam-ips: 172.16.3.222"
+    echo "    # -- Server service type"
+    echo "    type: LoadBalancer"
     echo
     echo "  ## Server metrics service configuration"
     echo "  metrics:"
