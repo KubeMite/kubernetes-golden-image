@@ -886,7 +886,7 @@ install_cni() {
     echo "annotateK8sNode: true"
     echo
     echo "l2announcements:"
-    echo "  enabled: false"
+    echo "  enabled: true"
     echo
     echo "l2podAnnouncements:"
     echo "  enabled: false"
