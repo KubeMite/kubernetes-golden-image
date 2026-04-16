@@ -1,40 +1,50 @@
-# kubernetes-golden-image
-Golden ISO image for my Kubernetes nodes
+# Kubernetes Golden Image
 
-## How to run
-Run only on initial setup:
-- Download plugins:
+This repository contains the Packer configuration required to create a golden ISO image for the Kubernetes nodes running on the Proxmox environment.
+
+## Usage Instructions
+
+Run the following steps only during the initial setup:
+
+1. **Download required plugins:**
+
     ```sh
     packer init .
     ```
-- Create a variables file:
-```sh
-touch variables.auto.pkrvars
-```
-- Then put the following variables in that file:
-```
-bws_token      = "<bws-machine-account-token>"
-bws_project_id = "<bws-project-id>"
-```
 
-Format the code:
-```sh
-packer fmt .
-```
+1. **Create a variables file:**
 
-Validate the code:
-```sh
-packer validate .
-```
+    ```sh
+    touch variables.auto.pkrvars
+    ```
 
-Run the code:
-```sh
-packer build . -force
-```
+1. **Populate the variables file:** Add your Bitwarden Secrets Manager credentials:
 
-## How are VM IDs chosen?
+    ```text
+    bws_token      = "<bws-machine-account-token>"
+    bws_project_id = "<bws-project-id>"
+    ```
 
-- VM ID 101 - used for VM templates created by CI/CD from the main branch, used for production
-- VM ID 102 - used for VM templates created by CI/CD from pull requests to the main branch, used for validation
-- VM ID 103 - used for VM templates created by CI/CD from any branch that is not the main branch, used for testing
-- VM ID 104 - used for VM templates created when running a build manually from a local machine
+Run the following steps for each VM template creation:
+
+1. **Format and validate the code:**
+
+    ```sh
+    packer fmt .
+    packer validate .
+    ```
+
+1. **Run the build:**
+
+    ```sh
+    packer build . -force
+    ```
+
+## VM ID Allocation
+
+VM IDs are assigned systematically based on the build context:
+
+- **VM ID 101:** Used for VM templates created by CI/CD from the main branch (Production).
+- **VM ID 102:** Used for VM templates created by CI/CD from pull requests targeting the main branch (Validation).
+- **VM ID 103:** Used for VM templates created by CI/CD from any branch other than main (Testing).
+- **VM ID 104:** Used for VM templates created when running a build manually from a local machine.
