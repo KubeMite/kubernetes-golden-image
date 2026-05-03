@@ -119,6 +119,8 @@ apt_configuration() {
   apt update
   # shellcheck disable=SC2086
   apt install -y -qq $APT_PACKAGES
+  # Update to latest stable kernel version
+  apt dist-upgrade
 }
 
 # Harden permissions for folder permissions related to users & groups
