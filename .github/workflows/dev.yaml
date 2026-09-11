@@ -4,6 +4,7 @@ on:
   push:
     branches-ignore:
       - 'main'
+  workflow_dispatch:
 
 env:
   TEMPLATE_ID: 103
