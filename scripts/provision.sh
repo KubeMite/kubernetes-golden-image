@@ -546,7 +546,7 @@ cloud_init() {
 
 # Install the cosign package in order to verify file signatures
 setup_cosign() {
-  local COSIGN_VERSION=3.0.5
+  local COSIGN_VERSION="3.1.4"
 
   # Download
   curl -fsSL -O "https://github.com/sigstore/cosign/releases/download/v$COSIGN_VERSION/{cosign-linux-amd64,cosign-linux-amd64.sigstore.json,cosign_checksums.txt}"
