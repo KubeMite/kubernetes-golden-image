@@ -6,6 +6,9 @@ on:
       - main
     tags:
       - 'v*'
+  schedule:
+    - cron: '7 18 * * *'
+      timezone: 'Asia/Jerusalem'
   workflow_dispatch:
 
 env:
